@@ -1,5 +1,5 @@
 # Knowledge Base Configuration for @knowledgebase-wizard Agent
-# 
+#
 # This file defines custom knowledge bases that extend the knowledgebase-wizard agent.
 # Each knowledge base is a collection of folders containing markdown, PDF, and text files.
 #
