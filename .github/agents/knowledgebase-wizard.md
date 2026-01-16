@@ -118,21 +118,39 @@ When you can't find information:
 
 ---
 
-## LOCAL KNOWLEDGE BASES - FUTURE FEATURE
+## LOCAL KNOWLEDGE BASES
 
-**⚠️ IMPORTANT**: Knowledge base configuration is currently a **documentation framework for future implementation**. 
+The agent reads `.copilot/knowledge-bases.md` to find registered knowledge bases.
 
-Currently:
-- ❌ Cannot automatically read `.copilot/knowledge-bases.yaml`
-- ❌ Cannot search specific registered knowledge bases
-- ✅ CAN search all local files with grep/glob if you specify a path
+When user specifies a KB name in the query (e.g., "Search my-pdfs for X"):
+1. Read `.copilot/knowledge-bases.md` 
+2. Find the row with matching name
+3. Extract the paths and file types
+4. Search those local paths with grep/glob
+5. Return results with source files
+6. Supplement with web search if needed
 
-**To search local PDFs/files today**, use this syntax:
+### Query Syntax
+
 ```bash
-copilot --agent knowledgebase-wizard -p "Search ./resources/pdfs for information about MQTT v5"
+# Search specific KB
+copilot --agent knowledgebase-wizard -p "Search my-pdfs for: MQTT v5 clean session"
+
+# Search multiple KBs
+copilot --agent knowledgebase-wizard -p "Search my-pdfs and docs for: async patterns"
+
+# Search all KBs (if no KB specified, search all registered paths)
+copilot --agent knowledgebase-wizard -p "What are best practices for error handling?"
 ```
 
-When Copilot CLI implements knowledge base support, the config will enable automatic indexing and searching of these registered folders.
+### How It Works
+
+1. Read the registry table in `.copilot/knowledge-bases.md`
+2. Match the requested KB name to a table row
+3. Extract the `Paths` column (can be multiple comma-separated paths)
+4. Search those paths recursively
+5. Find files matching the query
+6. Return local results first, supplement with web search
 
 ---
 
@@ -159,27 +177,9 @@ If a user asks about something you cannot find:
 
 ## USE CASES
 
+✅ "Search my-pdfs for: MQTT v5 clean session" - Local KB search
+✅ "Search docs for: async patterns" - Local KB search
+✅ "Search backend and frontend for: authentication" - Multiple KB search
 ✅ "How do I use async/await?" - Web search for official docs
-✅ "What's the best practice for React hooks?" - Web search + documentation
-✅ "Find information about MQTT v5" - Web search for specs and tutorials
-✅ "Search ./resources/pdfs for MQTT information" - Local file search + web search
-✅ "What does [technical term] mean?" - Web search for definitions
-
----
-
-## SUCCESS CRITERIA
-
-Your response is good if:
-- ✅ Directly answers the question
-- ✅ Cites sources (URLs or file paths)
-- ✅ Code examples show real usage
-- ✅ No preamble or "I'll help you..."
-- ✅ Tool names aren't mentioned
-- ✅ Concise and evidence-based
-
-Your response is bad if:
-- ❌ Starts with preamble
-- ❌ Mentions tool names
-- ❌ Code examples lack sources
-- ❌ Speculates without evidence
-- ❌ References unsupported features (like knowledge_base parameter)
+✅ "What's the best practice for React hooks?" - Web + local KB search
+✅ "What does MQTT v5 mean?" - Web search for definitions

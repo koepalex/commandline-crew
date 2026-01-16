@@ -6,236 +6,227 @@ Your AI-Enhanced Dev Team in the terminal
 
 ## 🚀 Quick Start
 
-The Commandline Crew provides specialized AI agents to help with your development workflow. The `@knowledgebase-wizard` agent can search your documentation and answer questions about libraries, frameworks, and internal knowledge bases.
+The Commandline Crew provides specialized AI agents to help with your development workflow. The `@knowledgebase-wizard` agent can search your documentation and answer questions about libraries, frameworks, and best practices.
 
 ### Using the Knowledgebase Wizard
 
-\\\ash
+```bash
 # Ask about how to use something
 copilot --agent knowledgebase-wizard -p "How do I use async/await?"
 
-# Query your custom knowledge base
-copilot --agent knowledgebase-wizard -p "query: your question, knowledge_base: my-pdfs"
-\\\
+# Ask about a specific topic
+copilot --agent knowledgebase-wizard -p "What does clean session false mean in MQTT v5?"
+
+# Search local files (current workaround)
+copilot --agent knowledgebase-wizard -p "Search ./resources/pdfs for information about MQTT"
+```
 
 ---
 
 ## 📚 Knowledge Base Setup
 
-Extend the @knowledgebase-wizard agent with your own PDFs, markdown, and text files.
+### 🎯 Quick Setup - 3 Steps
 
-### TL;DR - 3 Steps
-
-#### Step 1: Create PDF Folder
-\\\ash
+#### Step 1: Create a folder for your documentation
+```bash
 mkdir ./resources/pdfs
-# Add your PDFs to this folder
-\\\
+# Copy your PDF files here
+```
 
-#### Step 2: Edit `.copilot/knowledge-bases.yaml`
-\\\yaml
-knowledge_bases:
-  - name: my-pdfs
-    description: "My PDF documentation"
-    folders:
-      - path: ./resources/pdfs
-        type: pdf
-\\\
+#### Step 2: Add to knowledge base registry
 
-#### Step 3: Query the Agent
-\\\ash
-copilot --agent knowledgebase-wizard -p "query: your question, knowledge_base: my-pdfs"
-\\\
+Edit `.copilot/knowledge-bases.md` and add a row to the table:
 
----
+```markdown
+| my-pdfs | My PDF documentation | `./resources/pdfs` | pdf |
+```
 
-## 📖 Configuration Syntax
+#### Step 3: Query the agent
+```bash
+copilot --agent knowledgebase-wizard -p "Search my-pdfs for: MQTT v5 clean session"
+```
 
-\\\yaml
-knowledge_bases:
-  - name: <unique-id>              # kebab-case identifier
-    description: "<what it is>"    # Human-readable
-    folders:
-      - path: ./path/to/folder     # Relative to repo root
-        type: pdf                  # pdf, markdown, or text
-\\\
+Done! The agent will search your knowledge base. ✅
 
 ---
 
-## 🎯 Common Examples
+## 📖 Configuration Reference
 
-### Just PDFs
-\\\yaml
-knowledge_bases:
-  - name: pdfs
-    description: "Documentation PDFs"
-    folders:
-      - path: ./resources/pdfs
-        type: pdf
-\\\
+The knowledge base registry is a simple markdown table in `.copilot/knowledge-bases.md`:
 
-### Multiple Folders in One KB
-\\\yaml
-knowledge_bases:
-  - name: architecture
-    description: "All architecture docs"
-    folders:
-      - path: ./docs/architecture
-        type: pdf
-      - path: ./docs/patterns
-        type: pdf
-\\\
+| Column | Purpose | Example |
+|--------|---------|---------|
+| **Name** | Unique KB identifier | `my-pdfs` |
+| **Description** | Human-readable purpose | `My PDF documentation` |
+| **Paths** | Folders to search (comma-separated) | `` `./resources/pdfs` `` |
+| **Types** | File types in those folders | `pdf`, `markdown`, `text` |
 
-### Multiple Knowledge Bases
-\\\yaml
-knowledge_bases:
-  - name: backend
-    description: "Backend docs"
-    folders:
-      - path: ./docs/backend
-        type: pdf
+### How to Add a Knowledge Base
 
-  - name: frontend
-    description: "Frontend docs"
-    folders:
-      - path: ./docs/frontend
-        type: pdf
-\\\
+1. **Create folder**: `mkdir ./your/path`
+2. **Add files**: Copy PDFs, markdown, or text files
+3. **Edit `.copilot/knowledge-bases.md`**: Add a row to the table
+4. **Query**: `copilot --agent knowledgebase-wizard -p "Search [name] for: query"`
 
-### Mixed Content (PDFs + Markdown + Text)
-\\\yaml
-knowledge_bases:
-  - name: complete
-    description: "Complete documentation"
-    folders:
-      - path: ./docs/guides
-        type: markdown
-      - path: ./resources/pdfs
-        type: pdf
-      - path: ./policies
-        type: text
-\\\
+### Paths Format
+
+✅ **Correct:**
+- `./resources/pdfs` - Relative, with forward slashes
+- `./docs/backend`, `./docs/frontend` - Multiple paths, comma-separated in markdown
+
+❌ **Incorrect:**
+- `C:\absolute\path` - Absolute Windows paths
+- `.\resources\pdfs` - Backslashes
+- `resources/pdfs` - Missing `./` prefix
 
 ---
 
-## 💡 Usage Commands
+## 💡 Usage Examples
 
-\\\ash
-# Query specific knowledge base
-copilot --agent knowledgebase-wizard -p "query: how do we structure APIs, knowledge_base: backend"
+### Search a specific knowledge base
+```bash
+copilot --agent knowledgebase-wizard -p "Search my-pdfs for: MQTT v5 clean session"
+```
 
-# With version
-copilot --agent knowledgebase-wizard -p "query: patterns, knowledge_base: architecture, version: 2.0"
+### Search multiple knowledge bases
+```bash
+copilot --agent knowledgebase-wizard -p "Search backend and frontend for: authentication patterns"
+```
 
-# Query all KBs (no knowledge_base parameter)
-copilot --agent knowledgebase-wizard -p "What's the best practice for this?"
-\\\
+### Combined local and web search
+```bash
+copilot --agent knowledgebase-wizard -p "Search docs for: async/await patterns. Also search web for best practices"
+```
 
----
-
-## ✅ Key Rules
-
-### Paths must be:
-- Relative to repo root: `./resources/pdfs`
-- With forward slashes: `./` (not `.\`)
-
-### YAML must have:
-- Colons after all field names: `name:`
-- Consistent indentation (spaces)
-- Dashes before list items: `- path:`
-
-### Knowledge Base name:
-- Unique
-- Lowercase with hyphens (kebab-case): `my-pdfs`, `backend-standards`
-- Used in queries exactly as written
+### General knowledge question (searches all KBs)
+```bash
+copilot --agent knowledgebase-wizard -p "How do I use async/await?"
+```
 
 ---
 
 ## 📁 Recommended File Structure
 
-\\\
+```
 your-repo/
 ├── .copilot/
-│   ├── README.md
-│   ├── KNOWLEDGE_BASE_SETUP.md      ← Detailed guide
-│   ├── knowledge-bases.yaml         ← Configuration
-│   └── knowledge-bases.yaml.backup  ← Backup
+│   ├── README.md                      ← Agent system overview
+│   ├── KNOWLEDGE_BASE_ROADMAP.md      ← Feature status & roadmap
+│   ├── KNOWLEDGE_BASE_SETUP.md        ← Detailed setup guide
+│   └── knowledge-bases.yaml           ← Configuration
+├── .github/
+│   └── agents/
+│       ├── knowledgebase-wizard.md    ← Agent definition
+│       └── orchestrator.md            ← Orchestrator agent
 ├── resources/
-│   └── pdfs/                        ← Put PDFs here
+│   └── pdfs/                          ← Put your PDFs here
 │       ├── guide.pdf
 │       └── reference.pdf
-└── [other files...]
-\\\
+└── docs/
+    ├── guides/
+    ├── backend/
+    └── frontend/
+```
 
 ---
 
 ## 🔧 Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| KB not found | Check name matches exactly, verify YAML syntax |
-| No results | Verify path is correct, PDFs exist, try different search terms |
-| YAML error | Check colons, indentation, dashes |
-| PDFs not found | Path must be `./relative/path`, not absolute |
+| Issue | Solution |
+|-------|----------|
+| Knowledge base parameter ignored | This is expected - KB feature not yet implemented. Use path-based search instead. |
+| Files not found in search | Verify the path is correct and relative to repo root. Use forward slashes: `./resources/pdfs` |
+| YAML configuration errors | Check `.copilot/knowledge-bases.yaml` syntax - all colons and indentation must be correct |
+| Agent gives web results only | Configure a path directly in your query for local file search |
 
 ---
 
-## 📖 Complete Minimal Example
+## 📖 More Information
 
-1. **Create folder**: `mkdir ./docs/pdfs`
-2. **Add PDF**: Copy `guide.pdf` to `./docs/pdfs/`
-3. **Edit `.copilot/knowledge-bases.yaml`**:
-   \\\yaml
-   knowledge_bases:
-     - name: docs
-       description: "Documentation"
-       folders:
-         - path: ./docs/pdfs
-           type: pdf
-   \\\
-4. **Test**: `copilot --agent knowledgebase-wizard -p "query: your question, knowledge_base: docs"`
+### Documentation Files
+- **Knowledge Base Registry**: `.copilot/knowledge-bases.md` - Add your KBs here (simple markdown table)
+- **Detailed Setup Guide**: `.copilot/KNOWLEDGE_BASE_SETUP.md` - 5-minute comprehensive guide
+- **Agent Overview**: `.copilot/README.md` - Agent system overview
 
-Done! 🎉
-
----
-
-## 📚 More Information
-
-- **Detailed Setup Guide**: `.copilot/KNOWLEDGE_BASE_SETUP.md`
-- **Agent System Overview**: `.copilot/README.md`
-- **Configuration Reference**: `.copilot/knowledge-bases.yaml`
+### Agent Files
+- **Knowledgebase Wizard**: `.github/agents/knowledgebase-wizard.md` - Agent definition and capabilities
+- **Orchestrator**: `.github/agents/orchestrator.md` - Multi-agent coordination framework
 
 ---
 
 ## 🤖 Available Agents
 
 ### @knowledgebase-wizard
-Specialized knowledge discovery agent for answering questions about libraries, frameworks, and external dependencies by searching official documentation, analyzing source code, and consulting extensible local knowledge bases.
+Specialized agent for knowledge discovery by searching documentation, code, and local knowledge bases.
 
-**Features:**
-- Answer "How do I use [library]?" questions
-- Search local PDFs, markdown, and text files
-- Query official documentation
+**Capabilities:**
+- Answer "How do I use X?" questions
+- Search local project files
+- Query web for documentation and tutorials
 - Find implementation examples
-- Enforce tool restrictions (read-only, no file modification)
-- Support 4 request types: conceptual, implementation, context, comprehensive
+- Read-only access (no file modification)
+- Support for future local KB search
 
-**Query:**
-\\\ash
+**Usage:**
+```bash
 copilot --agent knowledgebase-wizard -p "your question"
-\\\
+```
+
+**Current tools:**
+- ✅ Web search and fetching
+- ✅ Local file search (grep, glob, view)
+- ❌ File creation/modification (intentionally restricted)
+- ❌ Command execution (intentionally restricted)
 
 ### @orchestrator
-Coordinates multi-agent workflows by decomposing tasks, delegating to specialized agents, and combining results.
+Coordinates multi-agent workflows by decomposing tasks and delegating to specialized agents.
 
-**Status:** Framework ready for extension with new agents
+**Status:** Framework ready for integration with additional agents
 
 ---
 
 ## 🚀 Agents Documentation
 
-- **Agent Registry**: `.github/agents/`
-- **Knowledgebase Wizard**: `.github/agents/knowledgebase-wizard.md`
-- **Orchestrator**: `.github/agents/orchestrator.md`
+- **Agent Registry**: `.github/agents/` - All agent definitions
+- **Knowledgebase Wizard**: `.github/agents/knowledgebase-wizard.md` - Full agent spec
+- **Orchestrator**: `.github/agents/orchestrator.md` - Workflow coordination agent
+
+---
+
+## 📝 Example Queries
+
+### Search local knowledge bases
+```bash
+copilot --agent knowledgebase-wizard -p "Search my-pdfs for: MQTT v5 clean session"
+```
+
+### General how-to questions
+```bash
+copilot --agent knowledgebase-wizard -p "How do I use async/await?"
+```
+
+### Best practices
+```bash
+copilot --agent knowledgebase-wizard -p "What are best practices for error handling?"
+```
+
+### Find examples
+```bash
+copilot --agent knowledgebase-wizard -p "Show examples of React hooks"
+```
+
+### Search multiple KBs
+```bash
+copilot --agent knowledgebase-wizard -p "Search backend and frontend for: authentication"
+```
+
+---
+
+## ⏱️ Next Steps
+
+1. **Organize documentation** - Create folders and populate with PDFs/markdown
+2. **Configure knowledge bases** - Edit `.copilot/knowledge-bases.yaml`
+3. **Test with workarounds** - Use path-based queries to search local files
+4. **Upgrade when ready** - When Copilot CLI releases KB support, your configuration will work automatically
 
 ---
