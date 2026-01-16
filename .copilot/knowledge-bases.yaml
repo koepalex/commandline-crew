@@ -1,0 +1,84 @@
+# Knowledge Base Configuration for @knowledgebase-wizard Agent
+# 
+# This file defines custom knowledge bases that extend the knowledgebase-wizard agent.
+# Each knowledge base is a collection of folders containing markdown, PDF, and text files.
+#
+# The agent will search these local knowledge bases when responding to queries,
+# supplementing searches from official documentation and web sources.
+#
+# Usage: Users can reference knowledge bases in queries:
+#   copilot-cli @knowledgebase-wizard "query: [your question], knowledge_base: [base-name]"
+
+knowledge_bases:
+  # Example: Project-specific patterns and guidelines
+  # To enable, uncomment and customize the folders
+  
+  # - name: project-patterns
+  #   description: "Project-specific design patterns and architectural guidelines"
+  #   folders:
+  #     - path: ./docs/patterns
+  #       type: markdown
+  #     - path: ./docs/architecture
+  #       type: markdown
+  #     - path: ./guidelines
+  #       type: pdf
+
+  # Example: Domain-specific knowledge
+  # - name: domain-knowledge
+  #   description: "Domain-specific knowledge and business logic documentation"
+  #   folders:
+  #     - path: ./docs/domain
+  #       type: markdown
+  #     - path: ./resources/domain-pdfs
+  #       type: pdf
+
+  # Example: API Documentation
+  # - name: internal-apis
+  #   description: "Internal API specifications and usage patterns"
+  #   folders:
+  #     - path: ./api-docs
+  #       type: markdown
+  #     - path: ./openapi-specs
+  #       type: markdown
+
+  # Example: Security and Compliance
+  # - name: security-policies
+  #   description: "Security best practices and compliance guidelines"
+  #   folders:
+  #     - path: ./docs/security
+  #       type: markdown
+  #     - path: ./policies
+  #       type: text
+  #     - path: ./resources/security-guides
+  #       type: pdf
+
+# Configuration Reference:
+# ========================
+#
+# knowledge_bases:
+#   - name: <unique-identifier>
+#     description: "<human-readable description>"
+#     folders:
+#       - path: <relative-path-from-repo-root>
+#         type: <markdown|pdf|text>
+#       - path: <another-path>
+#         type: <markdown|pdf|text>
+#
+# Fields:
+#   name (required)        : Unique identifier for the knowledge base (kebab-case)
+#   description (required) : What this knowledge base covers
+#   folders (required)     : List of folders to search
+#     path (required)      : Relative path from repository root
+#     type (required)      : File type - markdown, pdf, or text
+#
+# Supported File Types:
+#   - markdown : .md files (including .mdx, .markdown)
+#   - pdf      : .pdf files (requires PDF parsing capability)
+#   - text     : Plain text files (.txt, .doc, .log, etc)
+#
+# Notes:
+#   - Paths are relative to the repository root
+#   - Use forward slashes even on Windows (they'll be converted)
+#   - The agent searches all files in specified folders recursively
+#   - Files are indexed and searched alongside web sources
+#   - Query results show source file name and location for reference
