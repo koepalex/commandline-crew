@@ -7,41 +7,37 @@
 # supplementing searches from official documentation and web sources.
 #
 # Usage: Users can reference knowledge bases in queries:
-#   copilot-cli @knowledgebase-wizard "query: [your question], knowledge_base: [base-name]"
+#   copilot --agent knowledgebase-wizard -p "query: [your question], knowledge_base: [base-name]"
 
 knowledge_bases:
-  # Example: Project-specific patterns and guidelines
-  # To enable, uncomment and customize the folders
-  
-  # - name: project-patterns
-  #   description: "Project-specific design patterns and architectural guidelines"
+  # EXAMPLE 1: Folder of PDF files
+  # Uncomment and customize to enable
+  #
+  # - name: my-pdfs
+  #   description: "PDF documentation and references"
   #   folders:
-  #     - path: ./docs/patterns
+  #     - path: ./resources/pdfs
+  #       type: pdf
+
+  # EXAMPLE 2: Mixed content (PDFs + Markdown)
+  # - name: complete-docs
+  #   description: "Complete documentation with guides and references"
+  #   folders:
+  #     - path: ./docs/guides
   #       type: markdown
+  #     - path: ./resources/pdf-references
+  #       type: pdf
+
+  # EXAMPLE 3: Multiple PDF folders
+  # - name: architecture-docs
+  #   description: "Architecture, design patterns, and guidelines"
+  #   folders:
   #     - path: ./docs/architecture
-  #       type: markdown
-  #     - path: ./guidelines
+  #       type: pdf
+  #     - path: ./docs/patterns
   #       type: pdf
 
-  # Example: Domain-specific knowledge
-  # - name: domain-knowledge
-  #   description: "Domain-specific knowledge and business logic documentation"
-  #   folders:
-  #     - path: ./docs/domain
-  #       type: markdown
-  #     - path: ./resources/domain-pdfs
-  #       type: pdf
-
-  # Example: API Documentation
-  # - name: internal-apis
-  #   description: "Internal API specifications and usage patterns"
-  #   folders:
-  #     - path: ./api-docs
-  #       type: markdown
-  #     - path: ./openapi-specs
-  #       type: markdown
-
-  # Example: Security and Compliance
+  # EXAMPLE 4: Security and compliance
   # - name: security-policies
   #   description: "Security best practices and compliance guidelines"
   #   folders:
@@ -49,36 +45,158 @@ knowledge_bases:
   #       type: markdown
   #     - path: ./policies
   #       type: text
-  #     - path: ./resources/security-guides
+  #     - path: ./resources/compliance-pdfs
   #       type: pdf
 
-# Configuration Reference:
-# ========================
+# ============================================================================
+# CONFIGURATION REFERENCE
+# ============================================================================
 #
-# knowledge_bases:
-#   - name: <unique-identifier>
-#     description: "<human-readable description>"
-#     folders:
-#       - path: <relative-path-from-repo-root>
-#         type: <markdown|pdf|text>
-#       - path: <another-path>
-#         type: <markdown|pdf|text>
+# Format:
+#   knowledge_bases:
+#     - name: <unique-identifier>
+#       description: "<human-readable description>"
+#       folders:
+#         - path: <relative-path-from-repo-root>
+#           type: <markdown|pdf|text>
+#         - path: <another-path>
+#           type: <markdown|pdf|text>
 #
 # Fields:
-#   name (required)        : Unique identifier for the knowledge base (kebab-case)
-#   description (required) : What this knowledge base covers
-#   folders (required)     : List of folders to search
-#     path (required)      : Relative path from repository root
-#     type (required)      : File type - markdown, pdf, or text
 #
-# Supported File Types:
-#   - markdown : .md files (including .mdx, .markdown)
-#   - pdf      : .pdf files (requires PDF parsing capability)
-#   - text     : Plain text files (.txt, .doc, .log, etc)
+#   name (required)
+#     - Unique identifier (kebab-case, lowercase)
+#     - Example: my-pdfs, backend-docs, security-guidelines
+#     - Used in queries: knowledge_base: my-pdfs
 #
-# Notes:
-#   - Paths are relative to the repository root
-#   - Use forward slashes even on Windows (they'll be converted)
-#   - The agent searches all files in specified folders recursively
-#   - Files are indexed and searched alongside web sources
-#   - Query results show source file name and location for reference
+#   description (required)
+#     - Human-readable description of what this KB covers
+#     - Example: "Company standards and best practices"
+#
+#   folders (required)
+#     - List of folders to search
+#     - Each folder must have both path and type
+#
+#   path (required per folder)
+#     - Relative path from repository root
+#     - Use forward slashes: ./resources/pdfs
+#     - Example paths:
+#       * ./resources/pdfs
+#       * ./docs/guides
+#       * ./docs/architecture
+#       * ./policies/compliance
+#
+#   type (required per folder)
+#     - File type to search in this folder
+#     - Options:
+#       * markdown (or md) - for .md, .mdx, .markdown files
+#       * pdf - for .pdf files
+#       * text - for .txt, .doc, .log, etc.
+#
+# ============================================================================
+# EXAMPLES IN DETAIL
+# ============================================================================
+#
+# SIMPLE: Just PDFs
+#   - name: my-pdfs
+#     description: "PDF documentation"
+#     folders:
+#       - path: ./resources/pdfs
+#         type: pdf
+#
+#
+# MIXED: PDFs + Markdown
+#   - name: complete-docs
+#     description: "All documentation"
+#     folders:
+#       - path: ./docs
+#         type: markdown
+#       - path: ./resources/pdfs
+#         type: pdf
+#
+#
+# MULTIPLE FOLDERS: One KB with multiple PDF folders
+#   - name: architecture
+#     description: "All architecture and design docs"
+#     folders:
+#       - path: ./docs/architecture
+#         type: pdf
+#       - path: ./docs/patterns
+#         type: pdf
+#       - path: ./docs/guidelines
+#         type: pdf
+#
+#
+# PRODUCTION: Multiple knowledge bases
+#   - name: backend-docs
+#     description: "Backend APIs and patterns"
+#     folders:
+#       - path: ./docs/backend
+#         type: markdown
+#       - path: ./resources/api-docs
+#         type: pdf
+#
+#   - name: frontend-docs
+#     description: "Frontend frameworks and components"
+#     folders:
+#       - path: ./docs/frontend
+#         type: markdown
+#       - path: ./resources/ui-patterns
+#         type: pdf
+#
+#   - name: security-docs
+#     description: "Security and compliance"
+#     folders:
+#       - path: ./docs/security
+#         type: markdown
+#       - path: ./policies
+#         type: text
+#       - path: ./resources/compliance
+#         type: pdf
+#
+# ============================================================================
+# USAGE EXAMPLES
+# ============================================================================
+#
+# Query a specific knowledge base:
+#   copilot --agent knowledgebase-wizard -p "query: How do we structure APIs, knowledge_base: backend-docs"
+#
+# Query with version:
+#   copilot --agent knowledgebase-wizard -p "query: pattern for caching, knowledge_base: backend-docs, version: 2.0"
+#
+# Query all knowledge bases (default):
+#   copilot --agent knowledgebase-wizard -p "How do I implement this?"
+#
+# ============================================================================
+# NOTES
+# ============================================================================
+#
+# - Paths are RELATIVE to the repository root
+# - Use forward slashes even on Windows: ./resources/pdfs
+# - The agent searches RECURSIVELY in specified folders
+# - Files are INDEXED and searched alongside web sources
+# - Query results SHOW source file name and location
+# - PDF parsing is BUILT-IN to the agent
+# - Each knowledge base can have MULTIPLE folders
+#
+# ============================================================================
+# QUICK SETUP
+# ============================================================================
+#
+# 1. Create a folder for your PDFs:
+#    mkdir ./resources/pdfs
+#
+# 2. Add PDFs to the folder:
+#    cp your-documents.pdf ./resources/pdfs/
+#
+# 3. Uncomment a relevant example below and customize:
+#    - name: my-pdfs
+#      description: "My PDF documentation"
+#      folders:
+#        - path: ./resources/pdfs
+#          type: pdf
+#
+# 4. Test it:
+#    copilot --agent knowledgebase-wizard -p "query: your question, knowledge_base: my-pdfs"
+#
+# ============================================================================
