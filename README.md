@@ -183,13 +183,38 @@ Coordinates multi-agent workflows by decomposing tasks and delegating to special
 
 **Status:** Framework ready for integration with additional agents
 
+### @quality-pal
+Comprehensive code quality and assurance specialist for reviewing code and enforcing quality standards.
+
+**Capabilities:**
+- Run linters and check `.editorconfig` compliance
+- Analyze code for anti-patterns and outdated practices
+- Identify opportunities for modern language/framework features
+- Execute builds and test suites
+- Classify findings by severity (High/Medium/Low)
+- Generate detailed markdown quality reports
+- Act as quality gate for code from other agents
+
+**Usage:**
+```bash
+copilot --agent quality-pal -p "Review this code for quality: @src/api/user-service.ts"
+copilot --agent quality-pal -p "Run full quality assurance on the codebase"
+```
+
+**Current tools:**
+- ✅ File search and analysis (grep, glob, view)
+- ✅ Build and test execution (powershell, task)
+- ❌ File modification (intentionally restricted)
+- ❌ Commit/merge operations (intentionally restricted)
+
 ---
 
 ## 🚀 Agents Documentation
 
 - **Agent Registry**: `.github/agents/` - All agent definitions
-- **Knowledgebase Wizard**: `.github/agents/knowledgebase-wizard.md` - Full agent spec
-- **Orchestrator**: `.github/agents/orchestrator.md` - Workflow coordination agent
+- **Knowledgebase Wizard**: `.github/agents/knowledgebase-wizard.agent.md` - Knowledge discovery specialist
+- **Quality Pal**: `.github/agents/quality-pal.agent.md` - Code quality & assurance specialist
+- **Orchestrator**: `.github/agents/orchestrator.agent.md` - Workflow coordination agent
 
 ---
 
@@ -203,6 +228,21 @@ copilot --agent knowledgebase-wizard -p "Search my-pdfs for: MQTT v5 clean sessi
 ### General how-to questions
 ```bash
 copilot --agent knowledgebase-wizard -p "How do I use async/await?"
+```
+
+### Code quality review
+```bash
+copilot --agent quality-pal -p "Review src/services/user-service.ts for quality"
+```
+
+### Full quality assurance
+```bash
+copilot --agent quality-pal -p "Run full quality assurance on the codebase"
+```
+
+### Check build and tests
+```bash
+copilot --agent quality-pal -p "Run linters, build, and test suite to ensure quality"
 ```
 
 ### Best practices
