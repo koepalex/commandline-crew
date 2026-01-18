@@ -10,7 +10,7 @@ The agent reads this file to understand what knowledge bases are available and t
 
 | Name | Description | Paths | Types |
 |------|-------------|-------|-------|
-| my-pdfs | My PDF documentation | `./resources/pdfs` | pdf |
+| mqtt | MQTT V3.1.1 and MQTT V5 specifications | `C:\Users\alkopke\OneDrive - Microsoft\Projects\_Norms\MQTT` | pdf |
 | docs | Project documentation | `./docs` | markdown |
 | backend | Backend API documentation | `./docs/backend` | markdown, pdf |
 | frontend | Frontend framework docs | `./docs/frontend` | markdown, pdf |
@@ -164,4 +164,3 @@ The agent will:
 - Full-text search with relevance scoring
 - KB-specific search syntax (e.g., `@my-pdfs: query`)
 - Real-time file watching and re-indexing
-
