@@ -10,7 +10,7 @@ The agent reads this file to understand what knowledge bases are available and t
 
 | Name | Description | Paths | Types |
 |------|-------------|-------|-------|
-| mqtt | MQTT V3.1.1 and MQTT V5 specifications | `C:\Users\alkopke\OneDrive - Microsoft\Projects\_Norms\MQTT` | pdf |
+| mqtt | MQTT V3.1.1 and MQTT V5 specifications | `./resources/mqtt` | pdf |
 | docs | Project documentation | `./docs` | markdown |
 | backend | Backend API documentation | `./docs/backend` | markdown, pdf |
 | frontend | Frontend framework docs | `./docs/frontend` | markdown, pdf |
