@@ -29,8 +29,8 @@ copilot --agent knowledgebase-wizard -p "Search ./resources/pdfs for information
 
 #### Step 1: Create a folder for your documentation
 ```bash
-mkdir ./resources/pdfs
-# Copy your PDF files here
+mkdir ./resources/mqtt
+# Copy your text files here
 ```
 
 #### Step 2: Add to knowledge base registry
@@ -38,12 +38,12 @@ mkdir ./resources/pdfs
 Edit `.copilot/knowledge-bases.md` and add a row to the table:
 
 ```markdown
-| my-pdfs | My PDF documentation | `./resources/pdfs` | pdf |
+| mqtt| MQTT V3.1.1 and MQTT V5 specifications | `./resources/mqtt` | markdown |
 ```
 
 #### Step 3: Query the agent
 ```bash
-copilot --agent knowledgebase-wizard -p "Search my-pdfs for: MQTT v5 clean session"
+copilot --agent knowledgebase-wizard -p "Search mqtt for: What does clean session = false mean for MQTT V5"
 ```
 
 Done! The agent will search your knowledge base. ✅
@@ -56,28 +56,28 @@ The knowledge base registry is a simple markdown table in `.copilot/knowledge-ba
 
 | Column | Purpose | Example |
 |--------|---------|---------|
-| **Name** | Unique KB identifier | `my-pdfs` |
-| **Description** | Human-readable purpose | `My PDF documentation` |
-| **Paths** | Folders to search (comma-separated) | `` `./resources/pdfs` `` |
-| **Types** | File types in those folders | `pdf`, `markdown`, `text` |
+| **Name** | Unique KB identifier | `my-files-for-topic-a` |
+| **Description** | Human-readable purpose | `My hobby documentation` |
+| **Paths** | Folders to search (comma-separated) | `` `./resources/topics` `` |
+| **Types** | File types in those folders | `markdown`, `text` |
 
 ### How to Add a Knowledge Base
 
 1. **Create folder**: `mkdir ./your/path`
-2. **Add files**: Copy PDFs, markdown, or text files
+2. **Add files**: Copy markdown, or text files
 3. **Edit `.copilot/knowledge-bases.md`**: Add a row to the table
 4. **Query**: `copilot --agent knowledgebase-wizard -p "Search [name] for: query"`
 
 ### Paths Format
 
 ✅ **Correct:**
-- `./resources/pdfs` - Relative, with forward slashes
+- `./resources/topic` - Relative, with forward slashes
 - `./docs/backend`, `./docs/frontend` - Multiple paths, comma-separated in markdown
 
 ❌ **Incorrect:**
 - `C:\absolute\path` - Absolute Windows paths
-- `.\resources\pdfs` - Backslashes
-- `resources/pdfs` - Missing `./` prefix
+- `.\resources\topic` - Backslashes
+- `resources/topic` - Missing `./` prefix
 
 ---
 
@@ -85,7 +85,7 @@ The knowledge base registry is a simple markdown table in `.copilot/knowledge-ba
 
 ### Search a specific knowledge base
 ```bash
-copilot --agent knowledgebase-wizard -p "Search my-pdfs for: MQTT v5 clean session"
+copilot --agent knowledgebase-wizard -p "Search my-topic for: MQTT v5 clean session"
 ```
 
 ### Search multiple knowledge bases
