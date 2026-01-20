@@ -4,7 +4,63 @@ Your AI-Enhanced Dev Team in the terminal
 
 ---
 
-## 🚀 Quick Start
+## ⚡ Global Agent Setup (All Repositories)
+
+To use these agents in **any repository** on your machine, follow these 3 simple steps:
+
+### Step 1: Clone This Repository Globally
+```bash
+# Choose your location (e.g., ~/coding or C:\dev)
+git clone https://github.com/YOUR-ORG/commandline-crew.git ~/coding/commandline-crew
+
+# Remember the full path - you'll need it next
+```
+
+### Step 2: Set Environment Variable
+
+#### Windows PowerShell
+Add to your PowerShell profile (`$PROFILE`):
+```powershell
+$env:COPILOT_CUSTOM_INSTRUCTIONS_DIRS = "C:\Users\USERNAME\coding\commandline-crew\.github\agents"
+```
+
+Or set it globally (one-time):
+```powershell
+[Environment]::SetEnvironmentVariable(
+  "COPILOT_CUSTOM_INSTRUCTIONS_DIRS",
+  "C:\Users\USERNAME\coding\commandline-crew\.github\agents",
+  "User"
+)
+```
+
+#### macOS/Linux
+Add to your shell profile (`.bash_profile`, `.zshrc`, etc.):
+```bash
+export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$HOME/coding/commandline-crew/.github/agents"
+```
+
+### Step 3: Restart and Use
+
+```bash
+# Restart your terminal
+# Then use agents in ANY repository:
+cd ~/my-other-project
+copilot --agent dotnet-bot -p "Design a service with dependency injection"
+```
+
+### Verify Setup
+```bash
+# Check if environment variable is set
+echo $COPILOT_CUSTOM_INSTRUCTIONS_DIRS  # macOS/Linux
+echo $env:COPILOT_CUSTOM_INSTRUCTIONS_DIRS  # PowerShell
+
+# Inside any repository, use the agent
+copilot --agent dotnet-bot -p "What can you help with?"
+```
+
+---
+
+## 🚀 Quick Start (Repository-Local Usage)
 
 The Commandline Crew provides specialized AI agents to help with your development workflow. The `@knowledgebase-wizard` agent can search your documentation and answer questions about libraries, frameworks, and best practices.
 
@@ -39,6 +95,12 @@ Edit `.copilot/knowledge-bases.md` and add a row to the table:
 
 ```markdown
 | mqtt| MQTT V3.1.1 and MQTT V5 specifications | `./resources/mqtt` | markdown |
+```
+
+If you have PDF, Office, or other files, it is recommended to convert them to Markdown, e.g. by using [markitdown](https://github.com/microsoft/markitdown).
+
+```pwsh
+markitdown .\mqtt-v5.0-os.pdf -o mqtt-v5.0-os.md  
 ```
 
 #### Step 3: Query the agent
@@ -207,6 +269,43 @@ copilot --agent quality-pal -p "Run full quality assurance on the codebase"
 - ❌ File modification (intentionally restricted)
 - ❌ Commit/merge operations (intentionally restricted)
 
+### @dotnet-bot
+Specialized C# programming expert optimized for modern .NET development with latest language features and best practices.
+
+**Capabilities:**
+- Write idiomatic C# code using C# 14, 13, 12 features
+- Design APIs following SOLID and GRASP principles
+- Implement dependency injection patterns correctly
+- Write async/await code following best practices
+- Create comprehensive xUnit tests for API contracts
+- Recommend latest NuGet packages (MIT licensed)
+- Optimize performance and minimize allocations
+- Generate XML documentation comments
+
+**Specializations:**
+- API-first design (interface → tests → implementation)
+- .NET 10+ with latest framework features
+- ASP.NET Core guidance and patterns
+- Clean code and meaningful comments
+- Async/await correctness (ConfigureAwait, CancellationToken)
+- Structured logging and error handling
+
+**Usage:**
+```bash
+copilot --agent dotnet-bot -p "Design a repository pattern for users with dependency injection"
+copilot --agent dotnet-bot -p "Implement an async service method that validates and persists data"
+copilot --agent dotnet-bot -p "Create xUnit tests for this C# interface: @src/Services/IUserService.cs"
+```
+
+**Current tools:**
+- ✅ Code search and analysis (grep, glob, view)
+- ✅ Build and test execution (powershell, task)
+- ✅ Web search for latest NuGet packages
+- ✅ Documentation fetching for reference
+- ✅ Code generation in responses
+- ❌ Automatic file modification (generates code, you decide to save)
+- ❌ Commit/merge operations
+
 ---
 
 ## 🚀 Agents Documentation
@@ -214,6 +313,7 @@ copilot --agent quality-pal -p "Run full quality assurance on the codebase"
 - **Agent Registry**: `.github/agents/` - All agent definitions
 - **Knowledgebase Wizard**: `.github/agents/knowledgebase-wizard.agent.md` - Knowledge discovery specialist
 - **Quality Pal**: `.github/agents/quality-pal.agent.md` - Code quality & assurance specialist
+- **DotNet Bot**: `.github/agents/dotnet-bot.agent.md` - C# programming expert for .NET 10+
 - **Orchestrator**: `.github/agents/orchestrator.agent.md` - Workflow coordination agent
 
 ---
@@ -245,6 +345,21 @@ copilot --agent quality-pal -p "Run full quality assurance on the codebase"
 copilot --agent quality-pal -p "Run linters, build, and test suite to ensure quality"
 ```
 
+### C# API design
+```bash
+copilot --agent dotnet-bot -p "Design a clean C# API for a repository pattern with dependency injection"
+```
+
+### C# implementation with tests
+```bash
+copilot --agent dotnet-bot -p "Implement an async service that validates user data and returns errors using Result pattern"
+```
+
+### C# code review
+```bash
+copilot --agent dotnet-bot -p "Review this C# code for SOLID compliance and async/await best practices: @src/Services/UserService.cs"
+```
+
 ### Best practices
 ```bash
 copilot --agent knowledgebase-wizard -p "What are best practices for error handling?"
@@ -262,11 +377,39 @@ copilot --agent knowledgebase-wizard -p "Search backend and frontend for: authen
 
 ---
 
+## 🔄 Keeping Agents Updated
+
+Since your agents are in a cloned repository, you can easily keep them up-to-date:
+
+```bash
+# Navigate to your cloned commandline-crew
+cd ~/coding/commandline-crew
+
+# Pull latest agent definitions
+git pull origin main
+
+# New agents and updates automatically available in all repositories!
+```
+
+---
+
+## 🆘 Troubleshooting Global Agent Setup
+
+| Issue | Solution |
+|-------|----------|
+| `Agent not found` | Verify `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` is set: `echo $COPILOT_CUSTOM_INSTRUCTIONS_DIRS` |
+| Path not working | Use **full absolute path**, not `~` or relative paths. Example: `C:\Users\USERNAME\...` not `~/...` |
+| Still not working | Restart terminal/IDE after setting environment variable |
+| Multiple agent dirs | Separate paths with `;` (Windows) or `:` (macOS/Linux): `path1;path2` or `path1:path2` |
+
+---
+
 ## ⏱️ Next Steps
 
-1. **Organize documentation** - Create folders and populate with PDFs/markdown
-2. **Configure knowledge bases** - Edit `.copilot/knowledge-bases.yaml`
-3. **Test with workarounds** - Use path-based queries to search local files
-4. **Upgrade when ready** - When Copilot CLI releases KB support, your configuration will work automatically
+1. **Set up global agents** - Follow the "Global Agent Setup" section above
+2. **Organize documentation** - Create folders and populate with PDFs/markdown
+3. **Configure knowledge bases** - Edit `.copilot/knowledge-bases.yaml`
+4. **Test with workarounds** - Use path-based queries to search local files
+5. **Upgrade when ready** - When Copilot CLI releases KB support, your configuration will work automatically
 
 ---
