@@ -311,11 +311,87 @@ copilot --agent knowledgebase-wizard -p "Search backend and frontend for: authen
 
 ---
 
+---
+
+## 🎯 Spec-Driven Development with SpecKit
+
+Integrate [SpecKit](https://github.com/github/spec-kit) with Copilot CLI for spec-driven development workflows. SpecKit turns specifications into executable implementations with AI-powered guidance.
+
+### Installation
+
+Install the Specify CLI tool:
+
+```bash
+uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+```
+
+### Initialize Your Project
+
+```bash
+specify init . --ai copilot
+```
+
+This sets up SpecKit configuration and enables slash commands in Copilot CLI.
+
+### Using SpecKit with Copilot CLI
+
+Launch Copilot in your project directory:
+
+```bash
+copilot
+```
+
+Use the following slash commands to guide your development:
+
+| Command | Purpose |
+|---------|---------|
+| `/speckit.constitution` | Create project principles and development guidelines |
+| `/speckit.specify` | Describe what you want to build (focus on what & why) |
+| `/speckit.plan` | Define tech stack and architecture decisions |
+| `/speckit.tasks` | Break down the plan into actionable tasks |
+| `/speckit.implement` | Execute all tasks and build your feature |
+
+### Spec-Driven Development Workflow
+
+1. **Establish Principles**
+   ```
+   /speckit.constitution Create principles focused on code quality, testing, and performance
+   ```
+
+2. **Write Specification**
+   ```
+   /speckit.specify Build a feature that organizes photos in albums with drag-and-drop support
+   ```
+
+3. **Create Technical Plan**
+   ```
+   /speckit.plan Use Vite with minimal dependencies, vanilla HTML/CSS/JS, local SQLite database
+   ```
+
+4. **Break Into Tasks**
+   ```
+   /speckit.tasks
+   ```
+
+5. **Implement**
+   ```
+   /speckit.implement
+   ```
+
+### Learn More
+
+- [SpecKit Documentation](https://github.com/github/spec-kit)
+- [Spec-Driven Development Guide](https://github.com/github/spec-kit/blob/main/spec-driven.md)
+- [Video Overview](https://www.youtube.com/watch?v=a9eR1xsfvHg)
+
+---
+
 ## ⏱️ Next Steps
 
 1. **Organize documentation** - Create folders and populate with PDFs/markdown
 2. **Configure knowledge bases** - Edit `.copilot/knowledge-bases.yaml`
 3. **Test with workarounds** - Use path-based queries to search local files
-4. **Upgrade when ready** - When Copilot CLI releases KB support, your configuration will work automatically
+4. **Setup SpecKit** - Run `specify init . --ai copilot` for spec-driven workflows
+5. **Upgrade when ready** - When Copilot CLI releases KB support, your configuration will work automatically
 
 ---
