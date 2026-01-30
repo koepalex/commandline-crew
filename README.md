@@ -4,6 +4,55 @@ Your AI-Enhanced Dev Team in the terminal
 
 ---
 
+## 📦 Installation
+
+To use the commandline-crew agents globally (outside this repository), run the install script:
+
+### Install
+
+```powershell
+# Clone the repository
+git clone https://github.com/your-org/commandline-crew.git
+cd commandline-crew
+
+# Run the installer
+.\install.ps1
+
+# Or force overwrite existing agents
+.\install.ps1 -Force
+```
+
+This copies all agent files to `C:\Users\<USER>\.copilot\agents\` where the Copilot CLI can find them globally.
+
+The MCP servers defined in `.copilot/mcp-config.json` are merged into your user-level config at `~/.copilot/mcp-config.json`, preserving any custom MCP servers you already have configured.
+
+### Uninstall
+
+```powershell
+# Remove all commandline-crew agents
+.\uninstall.ps1
+
+# Or remove without prompting
+.\uninstall.ps1 -Force
+```
+
+### What Gets Installed
+
+| Source | Destination | Behavior |
+|--------|-------------|----------|
+| `.github/agents/*.agent.md` | `~/.copilot/agents/*.agent.md` | Copies agents (prompts to overwrite if exists) |
+| `.copilot/mcp-config.json` | `~/.copilot/mcp-config.json` | Merges MCP servers (preserves your custom servers) |
+
+After installation, agents are available in any directory:
+
+```bash
+copilot --agent knowledgebase-wizard -p "How do I use async/await?"
+copilot --agent quality-pal -p "Review this code for quality"
+copilot --agent deep-thought -p "Design a microservices architecture"
+```
+
+---
+
 ## 🚀 Quick Start
 
 The Commandline Crew provides specialized AI agents to help with your development workflow. The `@knowledgebase-wizard` agent can search your documentation and answer questions about libraries, frameworks, and best practices.
