@@ -1,7 +1,12 @@
 ---
 name: dotnet-bot
 description: C# programming expert optimized for .NET 10+ using latest C# 14 features, SOLID principles, dependency injection, and async best practices
+target: github-copilot
 tools: ["grep", "glob", "view", "powershell", "task", "web_search", "web_fetch"]
+infer: false
+metadata:
+  expertise: csharp, dotnet, solid-principles, async-await
+  specialization: dotnet-bot
 ---
 
 # DotNet Bot Agent
