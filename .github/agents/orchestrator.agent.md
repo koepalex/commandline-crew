@@ -1,12 +1,8 @@
 ---
 name: orchestrator
 description: Coordinates multi-agent workflows by decomposing tasks, delegating to specialized agents, and combining results
-target: github-copilot
 tools: ["*"]
 infer: false
-metadata:
-  expertise: workflow-coordination, multi-agent-orchestration
-  specialization: orchestrator
 ---
 
 # Orchestrator Agent

@@ -4,63 +4,56 @@ Your AI-Enhanced Dev Team in the terminal
 
 ---
 
-## ⚡ Global Agent Setup (All Repositories)
+## 📦 Installation
 
-To use these agents in **any repository** on your machine, follow these 3 simple steps:
+To use the commandline-crew agents globally (outside this repository), run the install script:
 
-### Step 1: Clone This Repository Globally
-```bash
-# Choose your location (e.g., ~/coding or C:\dev)
-git clone https://github.com/YOUR-ORG/commandline-crew.git ~/coding/commandline-crew
+### Install
 
-# Remember the full path - you'll need it next
-```
-
-### Step 2: Set Environment Variable
-
-#### Windows PowerShell
-Add to your PowerShell profile (`$PROFILE`):
 ```powershell
-$env:COPILOT_CUSTOM_INSTRUCTIONS_DIRS = "C:\Users\USERNAME\coding\commandline-crew\.github\agents"
+# Clone the repository
+git clone https://github.com/your-org/commandline-crew.git
+cd commandline-crew
+
+# Run the installer
+.\install.ps1
+
+# Or force overwrite existing agents
+.\install.ps1 -Force
 ```
 
-Or set it globally (one-time):
+This copies all agent files to `C:\Users\<USER>\.copilot\agents\` where the Copilot CLI can find them globally.
+
+The MCP servers defined in `.copilot/mcp-config.json` are merged into your user-level config at `~/.copilot/mcp-config.json`, preserving any custom MCP servers you already have configured.
+
+### Uninstall
+
 ```powershell
-[Environment]::SetEnvironmentVariable(
-  "COPILOT_CUSTOM_INSTRUCTIONS_DIRS",
-  "C:\Users\USERNAME\coding\commandline-crew\.github\agents",
-  "User"
-)
+# Remove all commandline-crew agents
+.\uninstall.ps1
+
+# Or remove without prompting
+.\uninstall.ps1 -Force
 ```
 
-#### macOS/Linux
-Add to your shell profile (`.bash_profile`, `.zshrc`, etc.):
+### What Gets Installed
+
+| Source | Destination | Behavior |
+|--------|-------------|----------|
+| `.github/agents/*.agent.md` | `~/.copilot/agents/*.agent.md` | Copies agents (prompts to overwrite if exists) |
+| `.copilot/mcp-config.json` | `~/.copilot/mcp-config.json` | Merges MCP servers (preserves your custom servers) |
+
+After installation, agents are available in any directory:
+
 ```bash
-export COPILOT_CUSTOM_INSTRUCTIONS_DIRS="$HOME/coding/commandline-crew/.github/agents"
-```
-
-### Step 3: Restart and Use
-
-```bash
-# Restart your terminal
-# Then use agents in ANY repository:
-cd ~/my-other-project
-copilot --agent dotnet-bot -p "Design a service with dependency injection"
-```
-
-### Verify Setup
-```bash
-# Check if environment variable is set
-echo $COPILOT_CUSTOM_INSTRUCTIONS_DIRS  # macOS/Linux
-echo $env:COPILOT_CUSTOM_INSTRUCTIONS_DIRS  # PowerShell
-
-# Inside any repository, use the agent
-copilot --agent dotnet-bot -p "What can you help with?"
+copilot --agent knowledgebase-wizard -p "How do I use async/await?"
+copilot --agent quality-pal -p "Review this code for quality"
+copilot --agent deep-thought -p "Design a microservices architecture"
 ```
 
 ---
 
-## 🚀 Quick Start (Repository-Local Usage)
+## 🚀 Quick Start
 
 The Commandline Crew provides specialized AI agents to help with your development workflow. The `@knowledgebase-wizard` agent can search your documentation and answer questions about libraries, frameworks, and best practices.
 
@@ -377,39 +370,87 @@ copilot --agent knowledgebase-wizard -p "Search backend and frontend for: authen
 
 ---
 
-## 🔄 Keeping Agents Updated
-
-Since your agents are in a cloned repository, you can easily keep them up-to-date:
-
-```bash
-# Navigate to your cloned commandline-crew
-cd ~/coding/commandline-crew
-
-# Pull latest agent definitions
-git pull origin main
-
-# New agents and updates automatically available in all repositories!
-```
-
 ---
 
-## 🆘 Troubleshooting Global Agent Setup
+## 🎯 Spec-Driven Development with SpecKit
 
-| Issue | Solution |
-|-------|----------|
-| `Agent not found` | Verify `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` is set: `echo $COPILOT_CUSTOM_INSTRUCTIONS_DIRS` |
-| Path not working | Use **full absolute path**, not `~` or relative paths. Example: `C:\Users\USERNAME\...` not `~/...` |
-| Still not working | Restart terminal/IDE after setting environment variable |
-| Multiple agent dirs | Separate paths with `;` (Windows) or `:` (macOS/Linux): `path1;path2` or `path1:path2` |
+Integrate [SpecKit](https://github.com/github/spec-kit) with Copilot CLI for spec-driven development workflows. SpecKit turns specifications into executable implementations with AI-powered guidance.
+
+### Installation
+
+Install the Specify CLI tool:
+
+```bash
+uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+```
+
+### Initialize Your Project
+
+```bash
+specify init . --ai copilot
+```
+
+This sets up SpecKit configuration and enables slash commands in Copilot CLI.
+
+### Using SpecKit with Copilot CLI
+
+Launch Copilot in your project directory:
+
+```bash
+copilot
+```
+
+Use the following slash commands to guide your development:
+
+| Command | Purpose |
+|---------|---------|
+| `/speckit.constitution` | Create project principles and development guidelines |
+| `/speckit.specify` | Describe what you want to build (focus on what & why) |
+| `/speckit.plan` | Define tech stack and architecture decisions |
+| `/speckit.tasks` | Break down the plan into actionable tasks |
+| `/speckit.implement` | Execute all tasks and build your feature |
+
+### Spec-Driven Development Workflow
+
+1. **Establish Principles**
+   ```
+   /speckit.constitution Create principles focused on code quality, testing, and performance
+   ```
+
+2. **Write Specification**
+   ```
+   /speckit.specify Build a feature that organizes photos in albums with drag-and-drop support
+   ```
+
+3. **Create Technical Plan**
+   ```
+   /speckit.plan Use Vite with minimal dependencies, vanilla HTML/CSS/JS, local SQLite database
+   ```
+
+4. **Break Into Tasks**
+   ```
+   /speckit.tasks
+   ```
+
+5. **Implement**
+   ```
+   /speckit.implement
+   ```
+
+### Learn More
+
+- [SpecKit Documentation](https://github.com/github/spec-kit)
+- [Spec-Driven Development Guide](https://github.com/github/spec-kit/blob/main/spec-driven.md)
+- [Video Overview](https://www.youtube.com/watch?v=a9eR1xsfvHg)
 
 ---
 
 ## ⏱️ Next Steps
 
-1. **Set up global agents** - Follow the "Global Agent Setup" section above
-2. **Organize documentation** - Create folders and populate with PDFs/markdown
-3. **Configure knowledge bases** - Edit `.copilot/knowledge-bases.yaml`
-4. **Test with workarounds** - Use path-based queries to search local files
+1. **Organize documentation** - Create folders and populate with PDFs/markdown
+2. **Configure knowledge bases** - Edit `.copilot/knowledge-bases.yaml`
+3. **Test with workarounds** - Use path-based queries to search local files
+4. **Setup SpecKit** - Run `specify init . --ai copilot` for spec-driven workflows
 5. **Upgrade when ready** - When Copilot CLI releases KB support, your configuration will work automatically
 
 ---
