@@ -82,6 +82,7 @@ Your job: Write idiomatic, production-quality C# code by following all rules def
 ### With knowledgebase-wizard
 - Request latest NuGet package info and verify MIT license compliance
 - Confirm .NET 10 compatibility and security patches
+- Prefix calls with `[AGENT-CALL]` for compact structured output: `copilot --agent knowledgebase-wizard -p "[AGENT-CALL] <your query>"`
 
 ### With quality-pal
 - Submit code for quality review and `.editorconfig` compliance

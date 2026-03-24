@@ -1,8 +1,8 @@
 # Knowledge Bases Registry
 
-This file defines custom knowledge bases that extend the @knowledgebase-wizard agent.
+This file defines custom knowledge bases that extend the @knowledgebase-wizard and @kb-manager agents.
 
-The agent reads this file to understand what knowledge bases are available and their locations.
+The agents read this file to understand what knowledge bases are available and their locations.
 
 ---
 
@@ -10,15 +10,23 @@ The agent reads this file to understand what knowledge bases are available and t
 
 | Name | Description | Paths | Types |
 |------|-------------|-------|-------|
-| mqtt | MQTT V3.1.1 and MQTT V5 specifications | `./resources/mqtt` | pdf |
 | docs | Project documentation | `./docs` | markdown |
-| backend | Backend API documentation | `./docs/backend` | markdown, pdf |
-| frontend | Frontend framework docs | `./docs/frontend` | markdown, pdf |
-| policies | Security and compliance | `./policies`, `./resources/compliance-pdfs` | text, pdf |
 
 ---
 
 ## How to Add a Knowledge Base
+
+Use the `@kb-manager` agent:
+
+```bash
+# Add a file or folder to a new or existing KB
+copilot --agent kb-manager -p "add ./path/to/file.pdf to kb my-docs"
+
+# Or add topic text directly
+copilot --agent kb-manager -p "add topic 'MQTT v5 clean session semantics' to kb mqtt"
+```
+
+Or manually:
 
 1. **Create the folder** (relative to repo root):
    ```bash
@@ -42,16 +50,36 @@ The agent reads this file to understand what knowledge bases are available and t
 
 ---
 
+## How to List Knowledge Bases
+
+```bash
+copilot --agent kb-manager -p "list"
+```
+
+---
+
+## How to Remove a Knowledge Base
+
+```bash
+# Remove a KB entry from the registry (keeps files)
+copilot --agent kb-manager -p "remove kb my-docs"
+
+# Remove a KB entry and delete its files
+copilot --agent kb-manager -p "remove kb my-docs and delete files"
+```
+
+---
+
 ## Usage Examples
 
 ### Query a specific knowledge base
 ```bash
-copilot --agent knowledgebase-wizard -p "Search my-pdfs for: MQTT v5 clean session"
+copilot --agent knowledgebase-wizard -p "Search docs for: async patterns"
 ```
 
 ### Query multiple knowledge bases
 ```bash
-copilot --agent knowledgebase-wizard -p "Search my-pdfs and docs for: async patterns"
+copilot --agent knowledgebase-wizard -p "Search docs and mqtt for: async patterns"
 ```
 
 ### Query all knowledge bases
@@ -110,12 +138,6 @@ Add this row:
 | architecture | Architecture docs and patterns | `./docs/architecture`, `./resources/design-patterns` | pdf, markdown |
 ```
 
-Create folders:
-```bash
-mkdir ./docs/architecture
-mkdir ./resources/design-patterns
-```
-
 ### Example 3: Mixed content types
 Add this row:
 ```markdown
@@ -126,23 +148,13 @@ Add this row:
 
 ## Searching Knowledge Bases
 
-The agent will:
+The `@knowledgebase-wizard` agent will:
 
 1. **Parse this registry** to find available KBs
 2. **Extract the paths** for each KB
 3. **Search local files** in those paths
 4. **Return results** with source files and locations
 5. **Supplement with web search** if local results are incomplete
-
----
-
-## Quick Setup Checklist
-
-- [ ] Create folder(s) for your documentation
-- [ ] Add files to the folder(s)
-- [ ] Add a row to the Knowledge Bases table above
-- [ ] Test with a query: `copilot --agent knowledgebase-wizard -p "Search [kb-name] for: ..."`
-- [ ] Verify results include local files
 
 ---
 
@@ -153,7 +165,7 @@ The agent will:
 | KB not found | Check the exact name in the table, use `Search [name] for:` syntax |
 | No results | Verify files exist in the path, try simpler search terms |
 | Path errors | Check paths use `./` prefix and forward slashes |
-| YAML errors | This is now markdown, not YAML - just edit the table! |
+| Non-markdown files | Use `@kb-manager add` — it converts automatically via markitdown |
 
 ---
 

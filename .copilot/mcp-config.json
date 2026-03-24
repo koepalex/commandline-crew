@@ -39,6 +39,16 @@
         "-y",
         "@modelcontextprotocol/server-sequential-thinking"
       ]
+    },
+    "markitdown": {
+      "tools": [
+        "*"
+      ],
+      "type": "local",
+      "command": "uvx",
+      "args": [
+        "markitdown-mcp"
+      ]
     }
   }
 }
