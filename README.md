@@ -328,6 +328,38 @@ python hooks/report.py sessions --db C:\observability\copilot-hooks.db
 
 ---
 
+## 🧪 Samples
+
+Ready-to-run examples that demonstrate what you can build with the [GitHub Copilot SDK](https://github.com/github/copilot-sdk).
+
+### Release Note Generator
+
+Generates structured release notes from local git commit messages using the Copilot SDK.
+Copilot drives the conversation — it asks for any missing inputs, runs `git log`, and categorizes commits automatically.
+
+**Output sections:** 💥 Breaking Changes · ✨ New Features · 🔧 Improvements · 🐛 Bug Fixes
+
+**Requirements:** .NET 9+ with the `dotnet run` [single-file execution](https://learn.microsoft.com/dotnet/core/tools/dotnet-run) feature (no project file needed).
+
+```powershell
+# Let Copilot ask for everything interactively
+dotnet run samples/copilot-sdk/release-note-generator.cs
+
+# Or supply args directly
+dotnet run samples/copilot-sdk/release-note-generator.cs -- \
+  --repo C:\projects\my-app \
+  --since 2025-10-15 \
+  --branch main
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--repo <path>` | Path to a local git repository | Copilot asks |
+| `--since <date>` | Include commits after this date (`2025-10-15`, `15.10.2025`, …) | Copilot asks |
+| `--branch <branch>` | Branch to read commits from | Copilot asks (optional) |
+
+---
+
 ## 📁 Repository Structure
 
 ```
@@ -354,6 +386,9 @@ commandline-crew/
 │   ├── post_tool_use.py               ← postToolUse hook
 │   ├── error_occurred.py              ← errorOccurred hook
 │   └── report.py                      ← reporting CLI
+├── samples/
+│   └── copilot-sdk/
+│       └── release-note-generator.cs  ← Copilot SDK sample (single-file)
 ├── resources/                         ← gitignored; put your PDFs/docs here
 ├── hooks.json                         ← hooks config for Copilot CLI
 ├── install.ps1
