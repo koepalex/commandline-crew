@@ -1,456 +1,273 @@
+![commandline-crew logo](./docs/images/commandline-crew.png)
+
 # commandline-crew
 
-Your AI-Enhanced Dev Team in the terminal
+Your AI-powered dev team in the terminal — a curated collection of specialized [GitHub Copilot CLI](https://githubnext.com/projects/copilot-cli) agents designed to work together on real engineering tasks.
+
+---
+
+## What's in This Repo?
+
+Five specialized agents, the MCP servers they depend on, install/uninstall scripts, and a knowledge base system — all ready to drop into your workflow.
+
+| Agent | Role | Model |
+|-------|------|-------|
+| [`@dotnet-bot`](#dotnet-bot) | C# / .NET 10 implementation expert | claude-sonnet-4.6 |
+| [`@quality-pal`](#quality-pal) | Code quality, linting, builds & tests | claude-sonnet-4.6 |
+| [`@deep-thought`](#deep-thought) | Architecture consultant & system design | claude-opus-4.6 |
+| [`@knowledgebase-wizard`](#knowledgebase-wizard) | Documentation & library research | claude-haiku-4.5 |
+| [`@kb-manager`](#kb-manager) | Knowledge base administration | 	claude-haiku-4.5 |
+
+Agents collaborate: `@dotnet-bot` and `@deep-thought` delegate research to `@knowledgebase-wizard`, and both use `@quality-pal` as a quality gate before declaring work done.
+
+---
+
+## Why Use It?
+
+- **Specialized > generalist.** Each agent has a focused role, tuned tools, and restricted permissions — it won't edit files when it shouldn't, and won't invent answers when it can search for the real one.
+- **Multi-agent pipelines out of the box.** Agents call each other with a structured `[AGENT-CALL]` protocol for compact, citation-rich responses.
+- **Bring your own docs.** The knowledge base system lets you register local folders of markdown/PDFs so `@knowledgebase-wizard` searches *your* documentation first.
+- **Safe to install globally.** `install.ps1` merges MCP server config non-destructively and copies agents to `~/.copilot/agents/` — it won't blow away your existing setup.
 
 ---
 
 ## 📦 Installation
 
-To use the commandline-crew agents globally (outside this repository), run the install script:
-
-### Install
-
 ```powershell
-# Clone the repository
+# Clone the repo
 git clone https://github.com/your-org/commandline-crew.git
 cd commandline-crew
 
-# Run the installer
+# Install globally (prompts before overwriting anything)
 .\install.ps1
 
-# Or force overwrite existing agents
+# Force overwrite existing agents/servers
 .\install.ps1 -Force
 ```
 
-This copies all agent files to `C:\Users\<USER>\.copilot\agents\` where the Copilot CLI can find them globally.
-
-The MCP servers defined in `.copilot/mcp-config.json` are merged into your user-level config at `~/.copilot/mcp-config.json`, preserving any custom MCP servers you already have configured.
-
-### Uninstall
-
-```powershell
-# Remove all commandline-crew agents
-.\uninstall.ps1
-
-# Or remove without prompting
-.\uninstall.ps1 -Force
-```
-
-### What Gets Installed
+What gets installed:
 
 | Source | Destination | Behavior |
 |--------|-------------|----------|
-| `.github/agents/*.agent.md` | `~/.copilot/agents/*.agent.md` | Copies agents (prompts to overwrite if exists) |
-| `.copilot/mcp-config.json` | `~/.copilot/mcp-config.json` | Merges MCP servers (preserves your custom servers) |
+| `.github/agents/*.agent.md` | `~/.copilot/agents/` | Copied (prompts on conflict) |
+| `.copilot/mcp-config.json` | `~/.copilot/mcp-config.json` | Merged (your custom servers preserved) |
 
-After installation, agents are available in any directory:
+To remove everything:
 
-```bash
-copilot --agent knowledgebase-wizard -p "How do I use async/await?"
-copilot --agent quality-pal -p "Review this code for quality"
-copilot --agent deep-thought -p "Design a microservices architecture"
+```powershell
+.\uninstall.ps1          # Prompts before each deletion
+.\uninstall.ps1 -Force   # Removes without prompting
 ```
+
+Only servers and agents *from this repo* are removed — your own customizations are untouched.
 
 ---
 
 ## 🚀 Quick Start
 
-The Commandline Crew provides specialized AI agents to help with your development workflow. The `@knowledgebase-wizard` agent can search your documentation and answer questions about libraries, frameworks, and best practices.
+After installing, agents are available in any directory:
 
-### Using the Knowledgebase Wizard
+```powershell
+copilot --agent dotnet-bot          -p "Design a repository pattern with DI for a user service"
+copilot --agent quality-pal         -p "Run full quality assurance on the codebase"
+copilot --agent deep-thought        -p "Analyze this codebase and recommend a migration to Clean Architecture"
+copilot --agent knowledgebase-wizard -p "How do I use ConfigureAwait correctly?"
+copilot --agent kb-manager          -p "List all registered knowledge bases"
+```
 
-```bash
-# Ask about how to use something
-copilot --agent knowledgebase-wizard -p "How do I use async/await?"
+---
 
-# Ask about a specific topic
-copilot --agent knowledgebase-wizard -p "What does clean session false mean in MQTT v5?"
+## 🤖 Agent Reference
 
-# Search local files (current workaround)
-copilot --agent knowledgebase-wizard -p "Search ./resources/pdfs for information about MQTT"
+### @dotnet-bot
+
+C# implementation specialist for .NET 10 projects.
+
+**Workflow:** Design public interface → write xUnit tests → implement → validate with `@quality-pal`
+
+**Strengths:**
+- Modern C# 14 idioms (primary constructors, collection expressions, raw string literals)
+- API-first design with XML documentation
+- Async/await correctness (`ConfigureAwait`, `CancellationToken`, `IAsyncEnumerable<T>`)
+- Dependency injection patterns (Microsoft.Extensions.DependencyInjection)
+- Performance-aware code (`Span<T>`, `ValueTask<T>`, `StringBuilder`)
+- xUnit + NSubstitute test authoring
+
+**Tools:** grep, glob, view, powershell, task, web_search, web_fetch, context7, mslearn
+
+```powershell
+copilot --agent dotnet-bot -p "Implement an async service that validates and persists user data"
+copilot --agent dotnet-bot -p "Create xUnit tests for this interface: @src/Services/IOrderService.cs"
+copilot --agent dotnet-bot -p "Review @src/Services/UserService.cs for SOLID compliance and async best practices"
+```
+
+---
+
+### @quality-pal
+
+Code quality gate — runs linters, builds, and tests across multiple languages.
+
+**Workflow:** Identify changed files → skip generated code → run per-language tooling → classify findings → produce markdown report
+
+**Language support:**
+
+| Language | Tools |
+|----------|-------|
+| C# / .NET | `dotnet format`, `dotnet build`, `dotnet test` |
+| TypeScript / JS | ESLint, `npm audit`, `npm run build` |
+| PowerShell | Invoke-ScriptAnalyzer |
+| Python | pylint, flake8, pytest |
+| Rust | `cargo clippy`, `cargo audit` |
+| Go | golangci-lint |
+
+Findings are classified 🔴 HIGH / 🟡 MEDIUM / 🟢 LOW. Read-only: never modifies files.
+
+```powershell
+copilot --agent quality-pal -p "Run full quality assurance on the codebase"
+copilot --agent quality-pal -p "Review @src/api/user-service.ts for quality issues"
+copilot --agent quality-pal -p "Run linters, build, and test suite"
+```
+
+---
+
+### @deep-thought
+
+Strategic technical advisor for architecture, system design, and high-stakes decisions.
+
+**Workflow:** Classify request → explore codebase → reason with sequential thinking → produce structured report with Mermaid diagrams and ADRs
+
+**Output always includes:**
+- Executive summary
+- Architecture diagrams (Mermaid.js)
+- Approach comparison table with trade-offs
+- Architectural Decision Records (ADRs)
+- Implementation strategy and risk assessment
+
+Delegates web research to `@knowledgebase-wizard`. Read-only: never modifies files or executes commands.
+
+```powershell
+copilot --agent deep-thought -p "Analyze this codebase and design a migration path to Clean Architecture"
+copilot --agent deep-thought -p "Compare gRPC vs REST vs GraphQL for our internal service mesh"
+copilot --agent deep-thought -p "Design a scalable event-driven order processing system"
+```
+
+---
+
+### @knowledgebase-wizard
+
+Documentation and library research agent. Searches your local knowledge bases *and* the web.
+
+**Sources searched:**
+- Local knowledge bases registered in `docs/knowledge-bases.md`
+- Microsoft Learn / Azure docs (via `mslearn` MCP)
+- Versioned library docs (via `context7` MCP)
+- General web search
+
+Used directly or called by other agents with `[AGENT-CALL]` prefix for compact structured responses. Read-only.
+
+```powershell
+# General how-to questions
+copilot --agent knowledgebase-wizard -p "How do I use async/await correctly in C#?"
+
+# Search a specific knowledge base
+copilot --agent knowledgebase-wizard -p "Search mqtt for: clean session false in MQTT V5"
+
+# Search multiple knowledge bases
+copilot --agent knowledgebase-wizard -p "Search backend and frontend for: authentication patterns"
+```
+
+---
+
+### @kb-manager
+
+Manages the knowledge base registry (`docs/knowledge-bases.md`). Converts non-markdown files automatically using `markitdown`.
+
+**Operations:** `LIST` · `ADD` · `REMOVE`
+
+```powershell
+# See all registered knowledge bases
+copilot --agent kb-manager -p "List all knowledge bases"
+
+# Add a new knowledge base (converts PDFs automatically)
+copilot --agent kb-manager -p "Add knowledge base 'mqtt' from ./resources/mqtt with description 'MQTT V5 specification'"
+
+# Remove a knowledge base
+copilot --agent kb-manager -p "Remove the 'old-docs' knowledge base"
 ```
 
 ---
 
 ## 📚 Knowledge Base Setup
 
-### 🎯 Quick Setup - 3 Steps
+Knowledge bases let `@knowledgebase-wizard` search your local documentation.
 
-#### Step 1: Create a folder for your documentation
-```bash
+### Quick Setup
+
+**1. Create a folder and add your files:**
+```powershell
 mkdir ./resources/mqtt
-# Copy your text files here
+# Copy markdown or text files here.
+# For PDFs: markitdown .\spec.pdf -o spec.md
 ```
 
-#### Step 2: Add to knowledge base registry
-
-Edit `.copilot/knowledge-bases.md` and add a row to the table:
-
-```markdown
-| mqtt| MQTT V3.1.1 and MQTT V5 specifications | `./resources/mqtt` | markdown |
+**2. Register via `@kb-manager`:**
+```powershell
+copilot --agent kb-manager -p "Add knowledge base 'mqtt' from ./resources/mqtt"
 ```
 
-If you have PDF, Office, or other files, it is recommended to convert them to Markdown, e.g. by using [markitdown](https://github.com/microsoft/markitdown).
+Or edit `docs/knowledge-bases.md` directly — it's a simple markdown table:
 
-```pwsh
-markitdown .\mqtt-v5.0-os.pdf -o mqtt-v5.0-os.md  
+| Name | Description | Paths | Types |
+|------|-------------|-------|-------|
+| `mqtt` | MQTT V5 specification | `` `./resources/mqtt` `` | markdown |
+
+**3. Query:**
+```powershell
+copilot --agent knowledgebase-wizard -p "Search mqtt for: What does clean session = false mean?"
 ```
 
-#### Step 3: Query the agent
-```bash
-copilot --agent knowledgebase-wizard -p "Search mqtt for: What does clean session = false mean for MQTT V5"
-```
+### Path Rules
 
-Done! The agent will search your knowledge base. ✅
+✅ `./resources/topic` — relative, forward slashes  
+✅ `./docs/backend`, `./docs/frontend` — multiple paths, comma-separated  
+❌ `C:\absolute\path` — no absolute paths  
+❌ `.\resources\topic` — no backslashes  
 
 ---
 
-## 📖 Configuration Reference
+## 🔌 MCP Servers
 
-The knowledge base registry is a simple markdown table in `.copilot/knowledge-bases.md`:
+The following MCP servers are configured in `.copilot/mcp-config.json` and installed alongside the agents:
 
-| Column | Purpose | Example |
-|--------|---------|---------|
-| **Name** | Unique KB identifier | `my-files-for-topic-a` |
-| **Description** | Human-readable purpose | `My hobby documentation` |
-| **Paths** | Folders to search (comma-separated) | `` `./resources/topics` `` |
-| **Types** | File types in those folders | `markdown`, `text` |
-
-### How to Add a Knowledge Base
-
-1. **Create folder**: `mkdir ./your/path`
-2. **Add files**: Copy markdown, or text files
-3. **Edit `.copilot/knowledge-bases.md`**: Add a row to the table
-4. **Query**: `copilot --agent knowledgebase-wizard -p "Search [name] for: query"`
-
-### Paths Format
-
-✅ **Correct:**
-- `./resources/topic` - Relative, with forward slashes
-- `./docs/backend`, `./docs/frontend` - Multiple paths, comma-separated in markdown
-
-❌ **Incorrect:**
-- `C:\absolute\path` - Absolute Windows paths
-- `.\resources\topic` - Backslashes
-- `resources/topic` - Missing `./` prefix
+| Server | Purpose |
+|--------|---------|
+| **mslearn** | Microsoft Learn & Azure documentation API |
+| **context7** | Versioned library documentation (via Upstash) |
+| **sequentialthinking** | Multi-step reasoning for complex architectural decisions |
+| **markitdown** | Convert PDF, DOCX, PPTX, Excel → markdown |
+| **playwright** | Browser automation |
 
 ---
 
-## 💡 Usage Examples
-
-### Search a specific knowledge base
-```bash
-copilot --agent knowledgebase-wizard -p "Search my-topic for: MQTT v5 clean session"
-```
-
-### Search multiple knowledge bases
-```bash
-copilot --agent knowledgebase-wizard -p "Search backend and frontend for: authentication patterns"
-```
-
-### Combined local and web search
-```bash
-copilot --agent knowledgebase-wizard -p "Search docs for: async/await patterns. Also search web for best practices"
-```
-
-### General knowledge question (searches all KBs)
-```bash
-copilot --agent knowledgebase-wizard -p "How do I use async/await?"
-```
-
----
-
-## 📁 Recommended File Structure
+## 📁 Repository Structure
 
 ```
-your-repo/
-├── .copilot/
-│   ├── README.md                      ← Agent system overview
-│   ├── KNOWLEDGE_BASE_ROADMAP.md      ← Feature status & roadmap
-│   ├── KNOWLEDGE_BASE_SETUP.md        ← Detailed setup guide
-│   └── knowledge-bases.yaml           ← Configuration
+commandline-crew/
 ├── .github/
-│   └── agents/
-│       ├── knowledgebase-wizard.md    ← Agent definition
-│       └── orchestrator.md            ← Orchestrator agent
-├── resources/
-│   └── pdfs/                          ← Put your PDFs here
-│       ├── guide.pdf
-│       └── reference.pdf
-└── docs/
-    ├── guides/
-    ├── backend/
-    └── frontend/
+│   ├── agents/
+│   │   ├── dotnet-bot.agent.md
+│   │   ├── quality-pal.agent.md
+│   │   ├── deep-thought.agent.md
+│   │   ├── knowledgebase-wizard.agent.md
+│   │   └── kb-manager.agent.md
+│   └── instructions/
+│       └── dotnet.instructions.md     ← C# coding standards
+├── .copilot/
+│   └── mcp-config.json                ← MCP server definitions
+├── docs/
+│   └── knowledge-bases.md             ← Knowledge base registry
+├── resources/                         ← gitignored; put your PDFs/docs here
+├── install.ps1
+└── uninstall.ps1
 ```
 
----
-
-## 🔧 Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Knowledge base parameter ignored | This is expected - KB feature not yet implemented. Use path-based search instead. |
-| Files not found in search | Verify the path is correct and relative to repo root. Use forward slashes: `./resources/pdfs` |
-| YAML configuration errors | Check `.copilot/knowledge-bases.yaml` syntax - all colons and indentation must be correct |
-| Agent gives web results only | Configure a path directly in your query for local file search |
-
----
-
-## 📖 More Information
-
-### Documentation Files
-- **Knowledge Base Registry**: `.copilot/knowledge-bases.md` - Add your KBs here (simple markdown table)
-- **Detailed Setup Guide**: `.copilot/KNOWLEDGE_BASE_SETUP.md` - 5-minute comprehensive guide
-- **Agent Overview**: `.copilot/README.md` - Agent system overview
-
-### Agent Files
-- **Knowledgebase Wizard**: `.github/agents/knowledgebase-wizard.md` - Agent definition and capabilities
-- **Orchestrator**: `.github/agents/orchestrator.md` - Multi-agent coordination framework
-
----
-
-## 🤖 Available Agents
-
-### @knowledgebase-wizard
-Specialized agent for knowledge discovery by searching documentation, code, and local knowledge bases.
-
-**Capabilities:**
-- Answer "How do I use X?" questions
-- Search local project files
-- Query web for documentation and tutorials
-- Find implementation examples
-- Read-only access (no file modification)
-- Support for future local KB search
-
-**Usage:**
-```bash
-copilot --agent knowledgebase-wizard -p "your question"
-```
-
-**Current tools:**
-- ✅ Web search and fetching
-- ✅ Local file search (grep, glob, view)
-- ❌ File creation/modification (intentionally restricted)
-- ❌ Command execution (intentionally restricted)
-
-### @orchestrator
-Coordinates multi-agent workflows by decomposing tasks and delegating to specialized agents.
-
-**Status:** Framework ready for integration with additional agents
-
-### @quality-pal
-Comprehensive code quality and assurance specialist for reviewing code and enforcing quality standards.
-
-**Capabilities:**
-- Run linters and check `.editorconfig` compliance
-- Analyze code for anti-patterns and outdated practices
-- Identify opportunities for modern language/framework features
-- Execute builds and test suites
-- Classify findings by severity (High/Medium/Low)
-- Generate detailed markdown quality reports
-- Act as quality gate for code from other agents
-
-**Usage:**
-```bash
-copilot --agent quality-pal -p "Review this code for quality: @src/api/user-service.ts"
-copilot --agent quality-pal -p "Run full quality assurance on the codebase"
-```
-
-**Current tools:**
-- ✅ File search and analysis (grep, glob, view)
-- ✅ Build and test execution (powershell, task)
-- ❌ File modification (intentionally restricted)
-- ❌ Commit/merge operations (intentionally restricted)
-
-### @dotnet-bot
-Specialized C# programming expert optimized for modern .NET development with latest language features and best practices.
-
-**Capabilities:**
-- Write idiomatic C# code using C# 14, 13, 12 features
-- Design APIs following SOLID and GRASP principles
-- Implement dependency injection patterns correctly
-- Write async/await code following best practices
-- Create comprehensive xUnit tests for API contracts
-- Recommend latest NuGet packages (MIT licensed)
-- Optimize performance and minimize allocations
-- Generate XML documentation comments
-
-**Specializations:**
-- API-first design (interface → tests → implementation)
-- .NET 10+ with latest framework features
-- ASP.NET Core guidance and patterns
-- Clean code and meaningful comments
-- Async/await correctness (ConfigureAwait, CancellationToken)
-- Structured logging and error handling
-
-**Usage:**
-```bash
-copilot --agent dotnet-bot -p "Design a repository pattern for users with dependency injection"
-copilot --agent dotnet-bot -p "Implement an async service method that validates and persists data"
-copilot --agent dotnet-bot -p "Create xUnit tests for this C# interface: @src/Services/IUserService.cs"
-```
-
-**Current tools:**
-- ✅ Code search and analysis (grep, glob, view)
-- ✅ Build and test execution (powershell, task)
-- ✅ Web search for latest NuGet packages
-- ✅ Documentation fetching for reference
-- ✅ Code generation in responses
-- ❌ Automatic file modification (generates code, you decide to save)
-- ❌ Commit/merge operations
-
----
-
-## 🚀 Agents Documentation
-
-- **Agent Registry**: `.github/agents/` - All agent definitions
-- **Knowledgebase Wizard**: `.github/agents/knowledgebase-wizard.agent.md` - Knowledge discovery specialist
-- **Quality Pal**: `.github/agents/quality-pal.agent.md` - Code quality & assurance specialist
-- **DotNet Bot**: `.github/agents/dotnet-bot.agent.md` - C# programming expert for .NET 10+
-- **Orchestrator**: `.github/agents/orchestrator.agent.md` - Workflow coordination agent
-
----
-
-## 📝 Example Queries
-
-### Search local knowledge bases
-```bash
-copilot --agent knowledgebase-wizard -p "Search my-pdfs for: MQTT v5 clean session"
-```
-
-### General how-to questions
-```bash
-copilot --agent knowledgebase-wizard -p "How do I use async/await?"
-```
-
-### Code quality review
-```bash
-copilot --agent quality-pal -p "Review src/services/user-service.ts for quality"
-```
-
-### Full quality assurance
-```bash
-copilot --agent quality-pal -p "Run full quality assurance on the codebase"
-```
-
-### Check build and tests
-```bash
-copilot --agent quality-pal -p "Run linters, build, and test suite to ensure quality"
-```
-
-### C# API design
-```bash
-copilot --agent dotnet-bot -p "Design a clean C# API for a repository pattern with dependency injection"
-```
-
-### C# implementation with tests
-```bash
-copilot --agent dotnet-bot -p "Implement an async service that validates user data and returns errors using Result pattern"
-```
-
-### C# code review
-```bash
-copilot --agent dotnet-bot -p "Review this C# code for SOLID compliance and async/await best practices: @src/Services/UserService.cs"
-```
-
-### Best practices
-```bash
-copilot --agent knowledgebase-wizard -p "What are best practices for error handling?"
-```
-
-### Find examples
-```bash
-copilot --agent knowledgebase-wizard -p "Show examples of React hooks"
-```
-
-### Search multiple KBs
-```bash
-copilot --agent knowledgebase-wizard -p "Search backend and frontend for: authentication"
-```
-
----
-
----
-
-## 🎯 Spec-Driven Development with SpecKit
-
-Integrate [SpecKit](https://github.com/github/spec-kit) with Copilot CLI for spec-driven development workflows. SpecKit turns specifications into executable implementations with AI-powered guidance.
-
-### Installation
-
-Install the Specify CLI tool:
-
-```bash
-uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
-```
-
-### Initialize Your Project
-
-```bash
-specify init . --ai copilot
-```
-
-This sets up SpecKit configuration and enables slash commands in Copilot CLI.
-
-### Using SpecKit with Copilot CLI
-
-Launch Copilot in your project directory:
-
-```bash
-copilot
-```
-
-Use the following slash commands to guide your development:
-
-| Command | Purpose |
-|---------|---------|
-| `/speckit.constitution` | Create project principles and development guidelines |
-| `/speckit.specify` | Describe what you want to build (focus on what & why) |
-| `/speckit.plan` | Define tech stack and architecture decisions |
-| `/speckit.tasks` | Break down the plan into actionable tasks |
-| `/speckit.implement` | Execute all tasks and build your feature |
-
-### Spec-Driven Development Workflow
-
-1. **Establish Principles**
-   ```
-   /speckit.constitution Create principles focused on code quality, testing, and performance
-   ```
-
-2. **Write Specification**
-   ```
-   /speckit.specify Build a feature that organizes photos in albums with drag-and-drop support
-   ```
-
-3. **Create Technical Plan**
-   ```
-   /speckit.plan Use Vite with minimal dependencies, vanilla HTML/CSS/JS, local SQLite database
-   ```
-
-4. **Break Into Tasks**
-   ```
-   /speckit.tasks
-   ```
-
-5. **Implement**
-   ```
-   /speckit.implement
-   ```
-
-### Learn More
-
-- [SpecKit Documentation](https://github.com/github/spec-kit)
-- [Spec-Driven Development Guide](https://github.com/github/spec-kit/blob/main/spec-driven.md)
-- [Video Overview](https://www.youtube.com/watch?v=a9eR1xsfvHg)
-
----
-
-## ⏱️ Next Steps
-
-1. **Organize documentation** - Create folders and populate with PDFs/markdown
-2. **Configure knowledge bases** - Edit `.copilot/knowledge-bases.yaml`
-3. **Test with workarounds** - Use path-based queries to search local files
-4. **Setup SpecKit** - Run `specify init . --ai copilot` for spec-driven workflows
-5. **Upgrade when ready** - When Copilot CLI releases KB support, your configuration will work automatically
-
----

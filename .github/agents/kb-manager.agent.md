@@ -4,7 +4,7 @@ description: Knowledge base manager for adding, listing, and removing content fr
 tools: ["grep", "glob", "view", "edit", "create", "powershell", "markitdown"]
 target: github-copilot
 infer: true
-model: claude-sonnet-4.6
+model: claude-haiku-4.5
 ---
 
 # KB Manager Agent
