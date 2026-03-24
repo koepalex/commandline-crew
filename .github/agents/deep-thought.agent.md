@@ -4,6 +4,7 @@ description: Strategic technical advisory and architecture consulting specialist
 target: github-copilot
 tools: ["grep", "glob", "view"]
 infer: false
+model: claude-opus-4.6
 ---
 
 
