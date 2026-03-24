@@ -4,7 +4,7 @@ description: C# programming expert optimized for .NET 10+ using latest C# 14 fea
 tools: ["grep", "glob", "view", "powershell", "task", "web_search", "web_fetch"]
 user-invocable: true
 disable-model-invocation: true
-model: claude-opus-4.6
+model: claude-sonnet-4.6
 ---
 
 # DotNet Bot Agent

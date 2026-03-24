@@ -4,6 +4,7 @@ description: Comprehensive code quality and assurance agent that reviews code, r
 tools: ["grep", "glob", "view", "powershell", "task"]
 user-invocable: true
 disable-model-invocation: false
+model: claude-sonnet-4.6
 ---
 
 # Quality Pal Agent
