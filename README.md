@@ -298,9 +298,14 @@ python hooks/report.py files             # files most frequently touched
 python hooks/report.py errors            # agent errors
 python hooks/report.py tokens            # estimated token usage per session
 python hooks/report.py prompts           # user prompts with error-complaint detection
+python hooks/report.py failures          # failed tool calls with the triggering prompt
+python hooks/report.py patterns          # recurring error + failure hot-spot patterns
+python hooks/report.py dashboard         # generate observability/dashboard.html
 ```
 
 All commands accept `--limit N`, `--session <id>`, and `--db <path>`.
+The `dashboard` command also accepts `--output <path>` (default: `observability/dashboard.html`).
+The generated HTML dashboard requires internet access to load Chart.js from the CDN.
 
 ### Uninstall
 
