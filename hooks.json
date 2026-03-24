@@ -1,0 +1,59 @@
+ {
+   "version": 1,
+   "hooks": {
+     "sessionStart": [
+       {
+         "type": "command",
+         "bash": "python3 hooks/session_start.py",
+         "powershell": "python hooks/session_start.py",
+         "cwd": ".",
+         "timeoutSec": 10
+       }
+     ],
+     "sessionEnd": [
+       {
+         "type": "command",
+         "bash": "python3 hooks/session_end.py",
+         "powershell": "python hooks/session_end.py",
+         "cwd": ".",
+         "timeoutSec": 10
+       }
+     ],
+     "userPromptSubmitted": [
+       {
+         "type": "command",
+         "bash": "python3 hooks/user_prompt.py",
+         "powershell": "python hooks/user_prompt.py",
+         "cwd": ".",
+         "timeoutSec": 10
+       }
+     ],
+     "preToolUse": [
+       {
+         "type": "command",
+         "bash": "python3 hooks/pre_tool_use.py",
+         "powershell": "python hooks/pre_tool_use.py",
+         "cwd": ".",
+         "timeoutSec": 10
+       }
+     ],
+     "postToolUse": [
+       {
+         "type": "command",
+         "bash": "python3 hooks/post_tool_use.py",
+         "powershell": "python hooks/post_tool_use.py",
+         "cwd": ".",
+         "timeoutSec": 10
+       }
+     ],
+     "errorOccurred": [
+       {
+         "type": "command",
+         "bash": "python3 hooks/error_occurred.py",
+         "powershell": "python hooks/error_occurred.py",
+         "cwd": ".",
+         "timeoutSec": 10
+      }
+    ]
+  }
+}

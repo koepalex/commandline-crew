@@ -249,6 +249,80 @@ The following MCP servers are configured in `.copilot/mcp-config.json` and insta
 
 ---
 
+## 🔭 Hooks Observability
+
+Track what Copilot agents are doing across sessions — tool usage, files touched, errors, user complaints, and estimated token consumption — all stored in a per-project SQLite database.
+
+### How It Works
+
+Six Python hook scripts fire at each lifecycle event and write structured records to `observability/hooks.db`:
+
+| Hook | What is logged |
+|------|----------------|
+| `sessionStart` | Session ID, source (new/resume), initial prompt |
+| `sessionEnd` | End reason (complete/error/abort/timeout/user_exit) |
+| `userPromptSubmitted` | Prompt text, token estimate, error-complaint flag |
+| `preToolUse` | Tool name + args before execution |
+| `postToolUse` | Tool name, file path, result type, token estimates |
+| `errorOccurred` | Error name, message, and stack trace |
+
+### Install into any repository
+
+> Requires Python 3.9+ (uses only the standard library).
+
+```powershell
+# Install hooks into a target repo
+.\install-hooks.ps1 -TargetRepo C:\projects\my-app
+
+# Force overwrite if already installed
+.\install-hooks.ps1 -TargetRepo C:\projects\my-app -Force
+```
+
+This copies `hooks/*.py` and writes two `hooks.json` files:
+- `{repo}/hooks.json` — used by **Copilot CLI** (loaded from cwd)
+- `{repo}/.github/hooks/hooks.json` — used by **Copilot coding agent**
+
+Add the database directory to `.gitignore`:
+```
+observability/
+```
+
+### View reports
+
+Run any of these from inside the target repository:
+
+```powershell
+python hooks/report.py sessions          # recent sessions with duration
+python hooks/report.py tools             # tool usage counts, failures, tokens
+python hooks/report.py files             # files most frequently touched
+python hooks/report.py errors            # agent errors
+python hooks/report.py tokens            # estimated token usage per session
+python hooks/report.py prompts           # user prompts with error-complaint detection
+```
+
+All commands accept `--limit N`, `--session <id>`, and `--db <path>`.
+
+### Uninstall
+
+```powershell
+# Remove hook scripts and config (keep the database)
+.\uninstall-hooks.ps1 -TargetRepo C:\projects\my-app
+
+# Remove everything including the database
+.\uninstall-hooks.ps1 -TargetRepo C:\projects\my-app -Force -PurgeData
+```
+
+### Override the database path
+
+Set `COPILOT_HOOKS_DB_PATH` to write all events to a single central database:
+
+```powershell
+$env:COPILOT_HOOKS_DB_PATH = "C:\observability\copilot-hooks.db"
+python hooks/report.py sessions --db C:\observability\copilot-hooks.db
+```
+
+---
+
 ## 📁 Repository Structure
 
 ```
@@ -266,8 +340,20 @@ commandline-crew/
 │   └── mcp-config.json                ← MCP server definitions
 ├── docs/
 │   └── knowledge-bases.md             ← Knowledge base registry
+├── hooks/
+│   ├── db.py                          ← SQLite schema + helpers
+│   ├── session_start.py               ← sessionStart hook
+│   ├── session_end.py                 ← sessionEnd hook
+│   ├── user_prompt.py                 ← userPromptSubmitted hook
+│   ├── pre_tool_use.py                ← preToolUse hook
+│   ├── post_tool_use.py               ← postToolUse hook
+│   ├── error_occurred.py              ← errorOccurred hook
+│   └── report.py                      ← reporting CLI
 ├── resources/                         ← gitignored; put your PDFs/docs here
+├── hooks.json                         ← hooks config for Copilot CLI
 ├── install.ps1
-└── uninstall.ps1
+├── install-hooks.ps1
+├── uninstall.ps1
+└── uninstall-hooks.ps1
 ```
 
