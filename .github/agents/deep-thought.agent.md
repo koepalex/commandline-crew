@@ -1,7 +1,9 @@
 ---
 name: deep-thought
 description: Strategic technical advisory and architecture consulting specialist. Deep-Thought brings deep understanding of technology, architecture, and design to solve complex problems and create strategic blueprints for systems and components.
+target: github-copilot
 tools: ["grep", "glob", "view"]
+infer: false
 ---
 
 

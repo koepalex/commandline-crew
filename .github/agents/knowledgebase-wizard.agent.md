@@ -2,7 +2,8 @@
 name: knowledgebase-wizard
 description: Specialized knowledge discovery agent for answering questions about libraries, frameworks, and external dependencies
 tools: ["grep", "glob", "view", "web_search", "web_fetch"]
-infer: false
+target: github-copilot
+infer: true
 ---
 
 # Knowledge Base Wizard Agent

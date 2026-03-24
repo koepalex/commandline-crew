@@ -2,9 +2,8 @@
 name: quality-pal
 description: Comprehensive code quality and assurance agent that reviews code, runs linters, validates style rules, analyzes best practices, and executes builds and tests
 tools: ["grep", "glob", "view", "powershell", "task"]
-user-invocable: true
-disable-model-invocation: false
-model: claude-sonnet-4.6
+target: github-copilot
+infer: true
 ---
 
 # Quality Pal Agent
