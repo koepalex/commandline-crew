@@ -360,6 +360,50 @@ dotnet run samples/copilot-sdk/release-note-generator.cs -- \
 
 ---
 
+### SKILL.md Generator
+
+Analyses a source repository (local path **or** remote URL) and produces a concise
+`/<package>/SKILL.md` that helps AI assistants super-charge usage of that library.
+
+Copilot drives the analysis — it reads README, samples, and tests to extract real APIs grouped by
+functional area. Falls back to scanning the public API surface when no usage examples are found.
+
+**What gets extracted:**
+- Core APIs grouped by usage, with one-line comments from XML docs
+- Logging & tracing — how to enable and configure
+- Error handling pattern (exceptions, Result types, callbacks…)
+- Architecture & design patterns observed in the source
+- `⚠️ Caveats` section (staleness, license warnings, missing docs)
+
+**Requirements:** .NET 9+ with the `dotnet run` [single-file execution](https://learn.microsoft.com/dotnet/core/tools/dotnet-run) feature (no project file needed).
+
+```powershell
+# Let Copilot ask for everything interactively
+dotnet run samples/copilot-sdk/skill-md-generator.cs
+
+# Supply args directly — local path
+dotnet run samples/copilot-sdk/skill-md-generator.cs -- \
+  --source C:\projects\my-library \
+  --target C:\skills
+
+# Supply args directly — remote URL
+dotnet run samples/copilot-sdk/skill-md-generator.cs -- \
+  --source https://github.com/org/repo \
+  --target C:\skills
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--source <path-or-url>` | Local path to a git repo **or** a remote git URL | Copilot asks |
+| `--target <folder>` | Output folder; SKILL.md is written to `<folder>/<package>/SKILL.md` | Copilot asks |
+
+**Automatic checks:**
+- ⚠️ Warns if the repository has had no commits for over a year (stale knowledge)
+- ⚠️ Warns if the license is not MIT or Apache 2.0
+- ⚠️ Warns and switches to public-API analysis if no samples, tests, or README code blocks exist
+
+---
+
 ## 📁 Repository Structure
 
 ```
@@ -388,7 +432,8 @@ commandline-crew/
 │   └── report.py                      ← reporting CLI
 ├── samples/
 │   └── copilot-sdk/
-│       └── release-note-generator.cs  ← Copilot SDK sample (single-file)
+│       ├── release-note-generator.cs  ← Copilot SDK sample (single-file)
+│       └── skill-md-generator.cs      ← Copilot SDK sample (single-file)
 ├── resources/                         ← gitignored; put your PDFs/docs here
 ├── hooks.json                         ← hooks config for Copilot CLI
 ├── install.ps1
