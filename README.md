@@ -249,6 +249,30 @@ The following MCP servers are configured in `.copilot/mcp-config.json` and insta
 
 ---
 
+## 🧠 Skills
+
+Skills are lightweight, model-invoked instruction packs stored in `~/.copilot/skills/<name>/SKILL.md`. Copilot CLI reads the YAML frontmatter of each `SKILL.md` and activates the skill automatically when your prompt matches its trigger description.
+
+| Skill | Trigger | What it does |
+|-------|---------|--------------|
+| `ask-folder` | Any exploratory question about the current folder (e.g. *"what does this do"*, *"how does X work"*, *"where is Y defined"*, *"explain this repo"*) | Answers using **only read-only tools** (`view`, `grep`, `glob`, read-only MCP calls, `git --no-pager` inspection). Never edits, creates, builds, or runs side-effecting commands. Delivers concise, file-cited answers. |
+
+### Install / Uninstall
+
+```powershell
+# Install every skill under skills\ into ~\.copilot\skills\
+.\install-skills.ps1
+.\install-skills.ps1 -Force     # overwrite existing skills without prompting
+
+# Remove skills installed by this repo (other skills are preserved)
+.\uninstall-skills.ps1
+.\uninstall-skills.ps1 -Force
+```
+
+Both scripts iterate every subfolder of `skills\`, so adding a new skill is just a matter of creating `skills\<name>\SKILL.md` and re-running `install-skills.ps1`.
+
+---
+
 ## 🔭 Hooks Observability
 
 Track what Copilot agents are doing across sessions — tool usage, files touched, errors, user complaints, and estimated token consumption — all stored in a per-project SQLite database.
@@ -434,11 +458,16 @@ commandline-crew/
 │   └── copilot-sdk/
 │       ├── release-note-generator.cs  ← Copilot SDK sample (single-file)
 │       └── skill-md-generator.cs      ← Copilot SDK sample (single-file)
+├── skills/
+│   └── ask-folder/
+│       └── SKILL.md                   ← read-only folder-QA skill
 ├── resources/                         ← gitignored; put your PDFs/docs here
 ├── hooks.json                         ← hooks config for Copilot CLI
 ├── install.ps1
 ├── install-hooks.ps1
+├── install-skills.ps1
 ├── uninstall.ps1
-└── uninstall-hooks.ps1
+├── uninstall-hooks.ps1
+└── uninstall-skills.ps1
 ```
 
