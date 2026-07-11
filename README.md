@@ -256,6 +256,7 @@ Skills are lightweight, model-invoked instruction packs stored in `~/.copilot/sk
 | Skill | Trigger | What it does |
 |-------|---------|--------------|
 | `ask-folder` | Any exploratory question about the current folder (e.g. *"what does this do"*, *"how does X work"*, *"where is Y defined"*, *"explain this repo"*) | Answers using **only read-only tools** (`view`, `grep`, `glob`, read-only MCP calls, `git --no-pager` inspection). Never edits, creates, builds, or runs side-effecting commands. Delivers concise, file-cited answers. |
+| `workflow-goal` | `/workflow-goal <condition>`, *"workflow goal"*, or requests for bounded autonomous work with parallel research | Maintains a measurable goal loop and dynamically launches read-only `copilot -p` workers for independent topics. Results are handed back through files; the parent session alone edits, validates, and completes the goal. |
 
 ### Install / Uninstall
 
@@ -270,6 +271,49 @@ Skills are lightweight, model-invoked instruction packs stored in `~/.copilot/sk
 ```
 
 Both scripts iterate every subfolder of `skills\`, so adding a new skill is just a matter of creating `skills\<name>\SKILL.md` and re-running `install-skills.ps1`.
+
+### Workflow Goal
+
+`/workflow-goal` combines an evidence-based autonomous goal loop with dynamic
+fan-out/fan-in research:
+
+```text
+/workflow-goal fix every failing test and prove the full suite passes
+/workflow-goal review each of these 41 files with one agent per file
+/workflow-goal compare the three approaches; use gpt-5.5-mini for workers
+/workflow-goal status
+/workflow-goal clear
+```
+
+The skill defaults to eight concurrent `claude-haiku-4.5` workers with the
+normal context tier. Explicit prompt instructions override those defaults:
+one-agent-per-file over 41 files starts 41 workers, and a requested model is
+passed to Copilot CLI exactly rather than silently replaced.
+
+Workers run in non-interactive prompt mode and are restricted to
+non-destructive research: local file reads/search, web search/fetch, and
+configured read-only MCP tools. Mixed-capability MCP servers require exact
+read-only tool names. Workers cannot edit source, use shell commands, store
+memory, recursively orchestrate, or decide that the goal is complete.
+`/workflow-goal clear` sends a cancellation request to the active helper and
+stops its recorded worker process IDs before clearing the session goal.
+
+Configuration is installed at:
+
+```text
+~\.copilot\skills\workflow-goal\config.json
+```
+
+Key settings include `defaultWorkers`, `workerModel`, `workerContext`,
+`workerTimeoutSeconds`, `workerMaxAiCredits`, `hardWorkerLimit`, artifact
+retention, URL access, and read-only MCP allowlists. Environment overrides use
+the `WORKFLOW_GOAL_*` prefix. The default artifact root is
+`%TEMP%\copilot-workflow-goal`; successful runs are removable after fan-in,
+while failed, timed-out, or cancelled runs are preserved for diagnosis.
+
+Each worker is a separate Copilot CLI session and consumes AI credits. Use an
+explicit worker count, model, or optional hard limit when cost or local process
+capacity matters.
 
 ---
 
@@ -459,8 +503,16 @@ commandline-crew/
 │       ├── release-note-generator.cs  ← Copilot SDK sample (single-file)
 │       └── skill-md-generator.cs      ← Copilot SDK sample (single-file)
 ├── skills/
-│   └── ask-folder/
-│       └── SKILL.md                   ← read-only folder-QA skill
+│   ├── ask-folder/
+│   │   └── SKILL.md                   ← read-only folder-QA skill
+│   └── workflow-goal/
+│       ├── SKILL.md                   ← bounded goal + dynamic workflow
+│       ├── Invoke-WorkflowGoal.ps1     ← parallel prompt-mode launcher
+│       ├── config.json                ← worker defaults and permissions
+│       └── THIRD-PARTY-NOTICES.md     ← upstream MIT attribution
+├── tests/
+│   └── workflow-goal/
+│       └── Invoke-WorkflowGoal.Tests.ps1
 ├── resources/                         ← gitignored; put your PDFs/docs here
 ├── hooks.json                         ← hooks config for Copilot CLI
 ├── install.ps1
@@ -470,4 +522,3 @@ commandline-crew/
 ├── uninstall-hooks.ps1
 └── uninstall-skills.ps1
 ```
-

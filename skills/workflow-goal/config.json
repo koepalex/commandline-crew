@@ -1,0 +1,36 @@
+{
+  "defaultWorkers": 8,
+  "workerModel": "claude-haiku-4.5",
+  "workerContext": "default",
+  "workerTimeoutSeconds": 900,
+  "workerMaxAiCredits": null,
+  "hardWorkerLimit": null,
+  "artifactRoot": null,
+  "retainArtifactsOnSuccess": false,
+  "allowAllUrls": true,
+  "readOnlyMcpServers": [
+    "mslearn",
+    "context7",
+    "sequentialthinking",
+    "markitdown"
+  ],
+  "readOnlyMcpTools": [
+    {
+      "server": "github-mcp-server",
+      "tools": [
+        "get_copilot_space",
+        "get_file_contents",
+        "list_copilot_spaces",
+        "search_code",
+        "search_users"
+      ]
+    }
+  ],
+  "disabledMcpServers": [
+    "playwright"
+  ],
+  "excludedTools": [
+    "task",
+    "ask_user"
+  ]
+}
