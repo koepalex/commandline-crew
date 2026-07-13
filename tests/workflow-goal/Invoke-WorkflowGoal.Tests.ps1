@@ -138,6 +138,23 @@ $runId = if ($env:WORKFLOW_GOAL_FAKE_RUN_ID) {
 }
 $mutex = [Threading.Mutex]::new($false, "workflow_goal_test_$runId")
 
+function Get-Concurrency {
+    [void]$mutex.WaitOne()
+    try {
+        $values = if (Test-Path -LiteralPath $statePath) {
+            (Get-Content -LiteralPath $statePath -Raw).Split(",")
+        } else {
+            @("0", "0")
+        }
+        return [PSCustomObject]@{
+            Active  = [int]$values[0]
+            Maximum = [int]$values[1]
+        }
+    } finally {
+        $mutex.ReleaseMutex()
+    }
+}
+
 function Update-Concurrency {
     param([int]$Delta)
 
@@ -153,6 +170,19 @@ function Update-Concurrency {
         Set-Content -LiteralPath $statePath -Value "$active,$maximum" -NoNewline
     } finally {
         $mutex.ReleaseMutex()
+    }
+}
+
+function Wait-ForConcurrency {
+    param(
+        [int]$Minimum,
+        [int]$TimeoutMilliseconds = 30000
+    )
+
+    $deadline = [DateTimeOffset]::UtcNow.AddMilliseconds($TimeoutMilliseconds)
+    while ((Get-Concurrency).Maximum -lt $Minimum -and
+        [DateTimeOffset]::UtcNow -lt $deadline) {
+        Start-Sleep -Milliseconds 50
     }
 }
 
@@ -175,6 +205,9 @@ for ($index = 0; $index -lt $RemainingArguments.Count - 1; $index++) {
 
 Update-Concurrency 1
 try {
+    if ($prompt -match "\[WAIT-FOR-CONCURRENCY:(\d+)\]") {
+        Wait-ForConcurrency -Minimum ([int]$Matches[1])
+    }
     if ($prompt -match "\[SLEEP:(\d+)\]") {
         Start-Sleep -Milliseconds ([int]$Matches[1])
     }
@@ -317,7 +350,9 @@ try {
 
     Reset-FakeState
     $env:WORKFLOW_GOAL_FAKE_RUN_ID = "forty-one"
-    $fortyOneModes = @(1..41 | ForEach-Object { "[SLEEP:5000]" })
+    $fortyOneModes = @(
+        1..41 | ForEach-Object { "[WAIT-FOR-CONCURRENCY:30]" }
+    )
     $fortyOneManifest = New-TaskManifest `
         -Name "forty-one-workers" `
         -Count 41 `
@@ -331,9 +366,10 @@ try {
     Assert-Equal 41 (
         Get-ChildItem -LiteralPath $argumentLogPath -Filter "*.args"
     ).Count "The launcher should start 41 worker processes"
+    $observedConcurrency = Get-MaxObservedConcurrency
     Assert-True (
-        (Get-MaxObservedConcurrency) -ge 30
-    ) "At least 30 of 41 workers should overlap in the mocked run"
+        $observedConcurrency -ge 30
+    ) "At least 30 of 41 workers should overlap in the mocked run; observed $observedConcurrency"
 
     Reset-FakeState
     $env:WORKFLOW_GOAL_FAKE_RUN_ID = "cancel"
