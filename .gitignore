@@ -2,3 +2,6 @@ resources/
 observability/hook_errors.log
 __pycache__
 observability/
+**/bin/
+**/obj/
+.copilot-tracking/

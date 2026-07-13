@@ -37,7 +37,9 @@ if (-not (Test-Path $sourceSkillsDir)) {
     exit 1
 }
 
-$sourceSkills = Get-ChildItem -Path $sourceSkillsDir -Directory -ErrorAction SilentlyContinue
+$sourceSkills = @(
+    Get-ChildItem -Path $sourceSkillsDir -Directory -ErrorAction SilentlyContinue
+)
 
 if (-not $sourceSkills -or $sourceSkills.Count -eq 0) {
     Write-Host "WARNING: No skills found in $sourceSkillsDir" -ForegroundColor Yellow
@@ -83,6 +85,14 @@ foreach ($skill in $sourceSkills) {
     }
 
     Copy-Item -Path $skill.FullName -Destination $targetPath -Recurse -Force
+    $generatedDirectories = @(
+        Get-ChildItem -LiteralPath $targetPath -Directory -Recurse -Force |
+            Where-Object { $_.Name -in @("bin", "obj") } |
+            Sort-Object -Property FullName -Descending
+    )
+    foreach ($generatedDirectory in $generatedDirectories) {
+        Remove-Item -LiteralPath $generatedDirectory.FullName -Recurse -Force
+    }
     Write-Host "  Installed: $($skill.Name)" -ForegroundColor Green
     $installed++
 }

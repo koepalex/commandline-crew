@@ -1,0 +1,58 @@
+name: OKF Wiki Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: okf-wiki-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: .NET and installation tests
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        shell: pwsh
+        run: dotnet restore .\commandline-crew.slnx --nologo
+
+      - name: Verify formatting
+        shell: pwsh
+        run: dotnet format .\commandline-crew.slnx --verify-no-changes --no-restore
+
+      - name: Build
+        shell: pwsh
+        run: dotnet build .\commandline-crew.slnx --nologo --no-restore
+
+      - name: Run OKF tool tests
+        shell: pwsh
+        run: >-
+          dotnet test
+          .\tests\okf-wiki\OkfWiki.Tool.Tests\OkfWiki.Tool.Tests.csproj
+          --nologo
+          --no-build
+
+      - name: Run skill installation tests
+        shell: pwsh
+        run: '& .\tests\okf-wiki\Install-OkfWiki.Tests.ps1'

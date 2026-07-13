@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>OkfWiki.Tool</AssemblyName>
+    <RootNamespace>OkfWiki.Tool</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+</Project>

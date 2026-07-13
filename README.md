@@ -256,6 +256,7 @@ Skills are lightweight, model-invoked instruction packs stored in `~/.copilot/sk
 | Skill | Trigger | What it does |
 |-------|---------|--------------|
 | `ask-folder` | Any exploratory question about the current folder (e.g. *"what does this do"*, *"how does X work"*, *"where is Y defined"*, *"explain this repo"*) | Answers using **only read-only tools** (`view`, `grep`, `glob`, read-only MCP calls, `git --no-pager` inspection). Never edits, creates, builds, or runs side-effecting commands. Delivers concise, file-cited answers. |
+| `okf-wiki` | Requests to create, update, validate, or preview an LLM wiki / Open Knowledge Format bundle | Curates workspace files and supplied URLs into OKF v0.1 markdown concepts, then uses a deterministic .NET/YamlDotNet tool to preserve frontmatter, regenerate indexes, append logs, preview changes, and validate conformance. |
 | `workflow-goal` | `/workflow-goal <condition>`, *"workflow goal"*, or requests for bounded autonomous work with parallel research | Maintains a measurable goal loop and dynamically launches read-only `copilot -p` workers for independent topics. Results are handed back through files; the parent session alone edits, validates, and completes the goal. |
 
 ### Install / Uninstall
@@ -271,6 +272,42 @@ Skills are lightweight, model-invoked instruction packs stored in `~/.copilot/sk
 ```
 
 Both scripts iterate every subfolder of `skills\`, so adding a new skill is just a matter of creating `skills\<name>\SKILL.md` and re-running `install-skills.ps1`.
+Nested skill files are copied recursively. This includes the `okf-wiki` .NET
+tool and its pinned package configuration. Uninstallation removes only skill
+folders represented in this repository and preserves unrelated user-created
+skills.
+
+### OKF Wiki
+
+`okf-wiki` creates and maintains LLM wikis based on Open Knowledge Format
+(OKF) v0.1. It can use the current workspace, explicitly supplied local files,
+and user-specified URLs as source material.
+
+```text
+Create an OKF wiki from the API docs in this repository
+Update .\knowledge with the customer schema from .\schemas\customer.json
+Preview adding https://example.com/runbook to .\llm-wiki
+Validate the OKF bundle at .\llm-wiki
+```
+
+The skill supports four operations:
+
+| Operation | Behavior |
+|-----------|----------|
+| Create | Writes new concept documents with required YAML frontmatter. |
+| Update | Matches by explicit concept path first, then by a unique `resource` URI. |
+| Preview | Reports concept, index, and log changes without writing files. |
+| Validate | Checks concept frontmatter plus reserved `index.md` / `log.md` structure. |
+
+When no bundle path is supplied for a write, the skill proposes
+`.\llm-wiki` and confirms it before continuing. Successful changes regenerate
+the affected directory indexes and their ancestors, then append entries to the
+root log and the changed concept's directory log.
+
+The deterministic helper is installed with the skill and requires the
+**.NET 10 SDK**. It uses a pinned YamlDotNet dependency to parse real YAML,
+preserve unknown frontmatter fields, reject unsafe paths and ambiguous resource
+matches, and keep dry runs free of filesystem writes.
 
 ### Workflow Goal
 

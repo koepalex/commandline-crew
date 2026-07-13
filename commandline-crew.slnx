@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/skills/" />
+  <Folder Name="/skills/okf-wiki/" />
+  <Folder Name="/skills/okf-wiki/tool/">
+    <Project Path="skills/okf-wiki/tool/OkfWiki.Tool/OkfWiki.Tool.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/okf-wiki/">
+    <Project Path="tests/okf-wiki/OkfWiki.Tool.Tests/OkfWiki.Tool.Tests.csproj" />
+  </Folder>
+</Solution>

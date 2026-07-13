@@ -43,7 +43,9 @@ if (-not (Test-Path $sourceSkillsDir)) {
     exit 1
 }
 
-$sourceSkills = Get-ChildItem -Path $sourceSkillsDir -Directory -ErrorAction SilentlyContinue
+$sourceSkills = @(
+    Get-ChildItem -Path $sourceSkillsDir -Directory -ErrorAction SilentlyContinue
+)
 if (-not $sourceSkills -or $sourceSkills.Count -eq 0) {
     Write-Host "No skills defined in this repository. Nothing to uninstall." -ForegroundColor Yellow
     exit 0
@@ -90,7 +92,7 @@ Write-Host "Uninstall complete!" -ForegroundColor Cyan
 Write-Host "  Removed: $removed skill(s)" -ForegroundColor Green
 
 # Offer to remove the skills directory if it is now empty
-$remaining = Get-ChildItem -Path $targetSkillsDir -ErrorAction SilentlyContinue
+$remaining = @(Get-ChildItem -Path $targetSkillsDir -ErrorAction SilentlyContinue)
 if (-not $remaining -or $remaining.Count -eq 0) {
     if ($Force) {
         Remove-Item -Path $targetSkillsDir -Force
