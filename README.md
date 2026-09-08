@@ -257,6 +257,7 @@ Skills are lightweight, model-invoked instruction packs stored in `~/.copilot/sk
 |-------|---------|--------------|
 | `ask-folder` | Any exploratory question about the current folder (e.g. *"what does this do"*, *"how does X work"*, *"where is Y defined"*, *"explain this repo"*) | Answers using **only read-only tools** (`view`, `grep`, `glob`, read-only MCP calls, `git --no-pager` inspection). Never edits, creates, builds, or runs side-effecting commands. Delivers concise, file-cited answers. |
 | `okf-wiki` | Requests to create, update, validate, or preview an LLM wiki / Open Knowledge Format bundle | Curates workspace files and supplied URLs into OKF v0.1 markdown concepts, then uses a deterministic .NET/YamlDotNet tool to preserve frontmatter, regenerate indexes, append logs, preview changes, and validate conformance. |
+| `unslop` | Drafting or editing documentation, README content, release notes, pull request descriptions, issue text, emails, reports, and other human-facing prose | Removes common AI-writing tells such as filler, vague claims, inflated vocabulary, forced patterns, weak verbs, and chatbot phrases. Preserves facts, technical terms, citations, code, and the intended tone. |
 | `workflow-goal` | `/workflow-goal <condition>`, *"workflow goal"*, or requests for bounded autonomous work with parallel research | Maintains a measurable goal loop and dynamically launches read-only `copilot -p` workers for independent topics. Results are handed back through files; the parent session alone edits, validates, and completes the goal. |
 
 ### Install / Uninstall
@@ -266,7 +267,7 @@ Skills are lightweight, model-invoked instruction packs stored in `~/.copilot/sk
 .\install-skills.ps1
 
 # Install specific skills
-.\install-skills.ps1 -Skill ask-folder,workflow-goal
+.\install-skills.ps1 -Skill ask-folder,unslop,workflow-goal
 .\install-skills.ps1 -Skill okf-wiki -Force  # overwrite a selected skill
 
 # Install every skill and overwrite existing copies without prompting
@@ -282,6 +283,28 @@ Nested skill files are copied recursively. This includes the `okf-wiki` .NET
 tool and its pinned package configuration. Uninstallation removes only skill
 folders represented in this repository and preserves unrelated user-created
 skills.
+
+### Unslop
+
+`unslop` edits human-facing prose so it sounds direct and intentional. It
+removes filler, unsupported generalizations, inflated vocabulary, repeated
+sentence patterns, decorative formatting, and stock chatbot phrases. It keeps
+the original meaning, certainty, technical terms, citations, commands, code,
+and requested tone.
+
+The skill activates for writing and editing tasks such as:
+
+```text
+Rewrite this README section so it sounds less AI-generated
+Draft concise release notes from these changes
+Edit this pull request description for direct, plain language
+Remove filler from this technical explanation without changing its meaning
+```
+
+It can also be invoked explicitly as `/unslop`. This Copilot version adapts the
+ideas from Cursor's
+[`unslop` skill](https://github.com/cursor/plugins/blob/main/pstack/skills/unslop/SKILL.md)
+to Copilot CLI skill metadata and behavior.
 
 ### OKF Wiki
 
