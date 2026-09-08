@@ -8,14 +8,21 @@
     automatically by the Copilot CLI on the next session.
 
 .PARAMETER Force
-    Overwrites existing skill folders without prompting.
+    Overwrites existing skill folders without prompting. If Skill is omitted,
+    installs all available skills.
+
+.PARAMETER Skill
+    Installs only the named skills. Accepts one or more skill folder names.
+    If omitted, the installer displays an interactive selection list.
 
 .EXAMPLE
     .\install-skills.ps1
+    .\install-skills.ps1 -Skill ask-folder,workflow-goal
     .\install-skills.ps1 -Force
 #>
 
 param(
+    [string[]]$Skill,
     [switch]$Force
 )
 
@@ -38,11 +45,115 @@ if (-not (Test-Path $sourceSkillsDir)) {
 }
 
 $sourceSkills = @(
-    Get-ChildItem -Path $sourceSkillsDir -Directory -ErrorAction SilentlyContinue
+    Get-ChildItem -Path $sourceSkillsDir -Directory -ErrorAction SilentlyContinue |
+        Sort-Object -Property Name
 )
 
 if (-not $sourceSkills -or $sourceSkills.Count -eq 0) {
     Write-Host "WARNING: No skills found in $sourceSkillsDir" -ForegroundColor Yellow
+    exit 0
+}
+
+$validSourceSkills = @()
+foreach ($sourceSkill in $sourceSkills) {
+    $sourceSkillMd = Join-Path $sourceSkill.FullName "SKILL.md"
+    if (-not (Test-Path -LiteralPath $sourceSkillMd)) {
+        Write-Host "Skipped: $($sourceSkill.Name) (missing SKILL.md)" -ForegroundColor Yellow
+        continue
+    }
+
+    $validSourceSkills += $sourceSkill
+}
+
+if ($validSourceSkills.Count -eq 0) {
+    Write-Host "WARNING: No valid skills found in $sourceSkillsDir" -ForegroundColor Yellow
+    exit 0
+}
+
+$selectedSkills = @()
+if ($Skill) {
+    $requestedNames = @(
+        $Skill |
+            ForEach-Object { $_ -split "," } |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { $_ }
+    )
+    $unknownNames = @(
+        $requestedNames |
+            Where-Object { $_ -notin $validSourceSkills.Name } |
+            Sort-Object -Unique
+    )
+    if ($unknownNames.Count -gt 0) {
+        Write-Host "ERROR: Unknown skill(s): $($unknownNames -join ', ')" -ForegroundColor Red
+        Write-Host "Available skills: $($validSourceSkills.Name -join ', ')" -ForegroundColor Gray
+        exit 1
+    }
+
+    $selectedSkills = @(
+        $validSourceSkills | Where-Object { $_.Name -in $requestedNames }
+    )
+} elseif ($Force) {
+    $selectedSkills = $validSourceSkills
+} else {
+    Write-Host "Available skills:" -ForegroundColor Green
+    for ($index = 0; $index -lt $validSourceSkills.Count; $index++) {
+        $sourceSkill = $validSourceSkills[$index]
+        $targetPath = Join-Path $targetSkillsDir $sourceSkill.Name
+        $status = if (Test-Path -LiteralPath $targetPath) {
+            " (already installed)"
+        } else {
+            ""
+        }
+        $color = if ($status) { "Yellow" } else { "Gray" }
+        Write-Host "  [$($index + 1)] $($sourceSkill.Name)$status" -ForegroundColor $color
+    }
+    Write-Host ""
+
+    $response = Read-Host "Select skills by number or name (comma-separated), or enter 'all'"
+    if ([string]::IsNullOrWhiteSpace($response)) {
+        Write-Host "Installation cancelled." -ForegroundColor Yellow
+        exit 0
+    }
+
+    $selections = @(
+        $response -split "," |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { $_ }
+    )
+    if ($selections -contains "all") {
+        $selectedSkills = $validSourceSkills
+    } else {
+        $invalidSelections = @()
+        $selectedNames = @()
+        foreach ($selection in $selections) {
+            if ($selection -match "^\d+$") {
+                $selectedIndex = [int]$selection - 1
+                if ($selectedIndex -lt 0 -or $selectedIndex -ge $validSourceSkills.Count) {
+                    $invalidSelections += $selection
+                    continue
+                }
+                $selectedNames += $validSourceSkills[$selectedIndex].Name
+            } elseif ($selection -in $validSourceSkills.Name) {
+                $selectedNames += $selection
+            } else {
+                $invalidSelections += $selection
+            }
+        }
+
+        if ($invalidSelections.Count -gt 0) {
+            Write-Host "ERROR: Invalid selection(s): $($invalidSelections -join ', ')" -ForegroundColor Red
+            exit 1
+        }
+
+        $selectedSkills = @(
+            $validSourceSkills |
+                Where-Object { $_.Name -in $selectedNames }
+        )
+    }
+}
+
+if ($selectedSkills.Count -eq 0) {
+    Write-Host "No skills selected. Nothing to install." -ForegroundColor Yellow
     exit 0
 }
 
@@ -56,27 +167,21 @@ if (-not (Test-Path $targetSkillsDir)) {
     New-Item -ItemType Directory -Path $targetSkillsDir -Force | Out-Null
 }
 
-Write-Host "Found $($sourceSkills.Count) skill(s) to install:" -ForegroundColor Green
-$sourceSkills | ForEach-Object { Write-Host "  - $($_.Name)" -ForegroundColor Gray }
+Write-Host ""
+Write-Host "Selected $($selectedSkills.Count) skill(s):" -ForegroundColor Green
+$selectedSkills | ForEach-Object { Write-Host "  - $($_.Name)" -ForegroundColor Gray }
 Write-Host ""
 
 $installed = 0
 $skipped = 0
 
-foreach ($skill in $sourceSkills) {
-    $sourceSkillMd = Join-Path $skill.FullName "SKILL.md"
-    if (-not (Test-Path $sourceSkillMd)) {
-        Write-Host "  Skipped: $($skill.Name) (missing SKILL.md)" -ForegroundColor Yellow
-        $skipped++
-        continue
-    }
-
-    $targetPath = Join-Path $targetSkillsDir $skill.Name
+foreach ($selectedSkill in $selectedSkills) {
+    $targetPath = Join-Path $targetSkillsDir $selectedSkill.Name
     if (Test-Path $targetPath) {
         if (-not $Force) {
-            $response = Read-Host "Skill '$($skill.Name)' already exists. Overwrite? [y/N]"
+            $response = Read-Host "Skill '$($selectedSkill.Name)' already exists. Overwrite? [y/N]"
             if ($response -notmatch "^[Yy]") {
-                Write-Host "  Skipped: $($skill.Name)" -ForegroundColor Yellow
+                Write-Host "  Skipped: $($selectedSkill.Name)" -ForegroundColor Yellow
                 $skipped++
                 continue
             }
@@ -84,7 +189,7 @@ foreach ($skill in $sourceSkills) {
         Remove-Item -Path $targetPath -Recurse -Force
     }
 
-    Copy-Item -Path $skill.FullName -Destination $targetPath -Recurse -Force
+    Copy-Item -Path $selectedSkill.FullName -Destination $targetPath -Recurse -Force
     $generatedDirectories = @(
         Get-ChildItem -LiteralPath $targetPath -Directory -Recurse -Force |
             Where-Object { $_.Name -in @("bin", "obj") } |
@@ -93,7 +198,7 @@ foreach ($skill in $sourceSkills) {
     foreach ($generatedDirectory in $generatedDirectories) {
         Remove-Item -LiteralPath $generatedDirectory.FullName -Recurse -Force
     }
-    Write-Host "  Installed: $($skill.Name)" -ForegroundColor Green
+    Write-Host "  Installed: $($selectedSkill.Name)" -ForegroundColor Green
     $installed++
 }
 

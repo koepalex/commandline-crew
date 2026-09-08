@@ -262,8 +262,14 @@ Skills are lightweight, model-invoked instruction packs stored in `~/.copilot/sk
 ### Install / Uninstall
 
 ```powershell
-# Install every skill under skills\ into ~\.copilot\skills\
+# Choose skills interactively (installed skills are marked in the list)
 .\install-skills.ps1
+
+# Install specific skills
+.\install-skills.ps1 -Skill ask-folder,workflow-goal
+.\install-skills.ps1 -Skill okf-wiki -Force  # overwrite a selected skill
+
+# Install every skill and overwrite existing copies without prompting
 .\install-skills.ps1 -Force     # overwrite existing skills without prompting
 
 # Remove skills installed by this repo (other skills are preserved)
@@ -271,7 +277,7 @@ Skills are lightweight, model-invoked instruction packs stored in `~/.copilot/sk
 .\uninstall-skills.ps1 -Force
 ```
 
-Both scripts iterate every subfolder of `skills\`, so adding a new skill is just a matter of creating `skills\<name>\SKILL.md` and re-running `install-skills.ps1`.
+Both scripts discover every subfolder of `skills\`, so adding a new skill is just a matter of creating `skills\<name>\SKILL.md` and re-running `install-skills.ps1`.
 Nested skill files are copied recursively. This includes the `okf-wiki` .NET
 tool and its pinned package configuration. Uninstallation removes only skill
 folders represented in this repository and preserves unrelated user-created
