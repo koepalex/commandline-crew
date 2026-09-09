@@ -1,180 +1,233 @@
 <#
 .SYNOPSIS
-    Uninstalls commandline-crew agents and MCP config from user's Copilot CLI configuration.
-
-.DESCRIPTION
-    Removes agent files that were installed by install.ps1 from 
-    C:\Users\<USER>\.copilot\agents\ and removes only the MCP servers 
-    that were added by this repository, preserving other custom servers.
-
-.PARAMETER Force
-    Removes files without prompting for confirmation.
-
-.EXAMPLE
-    .\uninstall.ps1
-    .\uninstall.ps1 -Force
+    Uninstalls resources owned by commandline-crew from Copilot CLI, OpenCode, or both.
 #>
 
 param(
+    [ValidateSet("copilot", "opencode", "both")]
+    [string]$Runtime,
     [switch]$Force
 )
 
 $ErrorActionPreference = "Stop"
 
-# Paths
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sourceAgentsDir = Join-Path $scriptDir ".github\agents"
-$sourceMcpConfig = Join-Path $scriptDir ".copilot\mcp-config.json"
-$targetCopilotDir = Join-Path $env:USERPROFILE ".copilot"
-$targetAgentsDir = Join-Path $targetCopilotDir "agents"
-$targetMcpConfig = Join-Path $targetCopilotDir "mcp-config.json"
-
-Write-Host "Commandline Crew - Uninstaller" -ForegroundColor Cyan
-Write-Host "==============================" -ForegroundColor Cyan
-Write-Host ""
-
-# Check if agents directory exists
-if (-not (Test-Path $targetAgentsDir)) {
-    Write-Host "No agents directory found at: $targetAgentsDir" -ForegroundColor Yellow
+function Resolve-Runtime {
+    if ($Runtime) { return $Runtime.ToLowerInvariant() }
+    while ($true) {
+        $value = (Read-Host "Uninstall from Copilot, OpenCode, or both? [copilot/opencode/both]").Trim().ToLowerInvariant()
+        if ($value -in @("c", "copilot")) { return "copilot" }
+        if ($value -in @("o", "opencode")) { return "opencode" }
+        if ($value -in @("b", "both")) { return "both" }
+        Write-Host "Please enter copilot, opencode, or both." -ForegroundColor Yellow
+    }
 }
 
-# --- MCP Config Removal ---
-if (Test-Path $targetMcpConfig) {
-    Write-Host "MCP Configuration" -ForegroundColor Cyan
-    Write-Host "-----------------" -ForegroundColor Cyan
-    
+function Get-UserHome {
+    if ($env:USERPROFILE) { return $env:USERPROFILE }
+    if ($env:HOME) { return $env:HOME }
+    throw "Neither USERPROFILE nor HOME is set."
+}
+
+function Get-OpenCodeRoot {
+    $root = if ($env:XDG_CONFIG_HOME) { $env:XDG_CONFIG_HOME } else { Join-Path (Get-UserHome) ".config" }
+    return Join-Path $root "opencode"
+}
+
+function Read-JsonObject {
+    param([string]$Path)
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "JSON file not found: $Path" }
+    try { $value = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json }
+    catch { throw "Malformed JSON in '$Path': $($_.Exception.Message)" }
+    if ($value -isnot [PSCustomObject]) { throw "JSON root must be an object: $Path" }
+    return $value
+}
+
+function Write-JsonSafely {
+    param($Value, [string]$Path)
+    $parent = Split-Path -Parent $Path
+    $temporaryPath = Join-Path $parent (".$([IO.Path]::GetRandomFileName())")
     try {
-        # Load configs to determine which servers to remove
-        if (Test-Path $sourceMcpConfig) {
-            $sourceConfig = Get-Content $sourceMcpConfig -Raw | ConvertFrom-Json
-            $targetConfig = Get-Content $targetMcpConfig -Raw | ConvertFrom-Json
-            
-            # Find servers that came from this repo
-            $serversToRemove = @()
-            foreach ($serverName in $sourceConfig.mcpServers.PSObject.Properties.Name) {
-                if ($targetConfig.mcpServers.PSObject.Properties[$serverName]) {
-                    $serversToRemove += $serverName
-                }
-            }
-            
-            if ($serversToRemove.Count -eq 0) {
-                Write-Host "  No commandline-crew MCP servers found to remove" -ForegroundColor Yellow
-            } else {
-                Write-Host "  Found $($serversToRemove.Count) server(s) to remove:" -ForegroundColor Yellow
-                $serversToRemove | ForEach-Object { Write-Host "    - $_" -ForegroundColor Gray }
-                
-                $removeMcp = $Force
-                if (-not $Force) {
-                    $response = Read-Host "  Remove these MCP servers? [y/N]"
-                    $removeMcp = $response -match "^[Yy]"
-                }
-                
-                if ($removeMcp) {
-                    # Remove servers
-                    foreach ($serverName in $serversToRemove) {
-                        $targetConfig.mcpServers.PSObject.Properties.Remove($serverName)
-                        Write-Host "  Removed: $serverName" -ForegroundColor Green
-                    }
-                    
-                    # Save updated config
-                    $targetConfig | ConvertTo-Json -Depth 10 | Set-Content $targetMcpConfig -Encoding UTF8
-                    Write-Host "  Total removed: $($serversToRemove.Count) server(s)" -ForegroundColor Green
-                } else {
-                    Write-Host "  Skipped: MCP server removal" -ForegroundColor Yellow
-                }
-            }
-        } else {
-            Write-Host "  WARNING: Cannot determine which servers to remove (source config not found)" -ForegroundColor Yellow
-            $removeMcp = $Force
-            if (-not $Force) {
-                $response = Read-Host "  Remove entire MCP config file? [y/N]"
-                $removeMcp = $response -match "^[Yy]"
-            }
-            
-            if ($removeMcp) {
-                Remove-Item -Path $targetMcpConfig -Force
-                Write-Host "  Removed: mcp-config.json (entire file)" -ForegroundColor Green
-            } else {
-                Write-Host "  Skipped: mcp-config.json" -ForegroundColor Yellow
-            }
-        }
-    } catch {
-        Write-Host "  ERROR: Failed to process MCP config: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host "  Skipped: MCP config removal" -ForegroundColor Yellow
+        $encoding = New-Object Text.UTF8Encoding -ArgumentList $false
+        $json = ($Value | ConvertTo-Json -Depth 100) + [Environment]::NewLine
+        [IO.File]::WriteAllText($temporaryPath, $json, $encoding)
+        Copy-Item -LiteralPath $temporaryPath -Destination $Path -Force
+    } finally {
+        if (Test-Path -LiteralPath $temporaryPath) { Remove-Item -LiteralPath $temporaryPath -Force }
     }
-    Write-Host ""
 }
 
-# --- Agents Removal ---
-Write-Host "Agents" -ForegroundColor Cyan
-Write-Host "------" -ForegroundColor Cyan
-
-if (-not (Test-Path $targetAgentsDir)) {
-    Write-Host "Nothing to uninstall." -ForegroundColor Gray
-    exit 0
-}
-
-# Get list of agents from source to know which ones to remove
-$sourceAgentFiles = Get-ChildItem -Path $sourceAgentsDir -Filter "*.agent.md" -ErrorAction SilentlyContinue
-
-if (-not $sourceAgentFiles -or $sourceAgentFiles.Count -eq 0) {
-    Write-Host "WARNING: Cannot determine which agents to remove (source not found)." -ForegroundColor Yellow
-    exit 1
-}
-
-# Find installed agents from this repo
-$agentsToRemove = @()
-foreach ($sourceFile in $sourceAgentFiles) {
-    $targetPath = Join-Path $targetAgentsDir $sourceFile.Name
-    if (Test-Path $targetPath) {
-        $agentsToRemove += @{
-            Name = $sourceFile.Name
-            Path = $targetPath
+function Get-Manifest {
+    param([string]$Path)
+    $manifest = Read-JsonObject $Path
+    foreach ($name in @("agents", "mcp", "skills")) {
+        if (-not $manifest.PSObject.Properties[$name]) {
+            $manifest | Add-Member -MemberType NoteProperty -Name $name -Value ([PSCustomObject]@{})
+        } elseif ($manifest.$name -isnot [PSCustomObject]) {
+            throw "Manifest category '$name' must be an object: $Path"
         }
     }
+    return $manifest
 }
 
-if ($agentsToRemove.Count -eq 0) {
-    Write-Host "No commandline-crew agents found to uninstall." -ForegroundColor Yellow
-    exit 0
-}
-
-Write-Host "Found $($agentsToRemove.Count) agent(s) to uninstall:" -ForegroundColor Yellow
-$agentsToRemove | ForEach-Object { Write-Host "  - $($_.Name)" -ForegroundColor Gray }
-Write-Host ""
-
-# Confirm removal
-if (-not $Force) {
-    $response = Read-Host "Are you sure you want to remove these agents? [y/N]"
-    if ($response -notmatch "^[Yy]") {
-        Write-Host "Uninstall cancelled." -ForegroundColor Yellow
-        exit 0
+function Test-JsonEqual {
+    param($Left, $Right)
+    if ($null -eq $Left -or $null -eq $Right) { return $null -eq $Left -and $null -eq $Right }
+    if ($Left -is [array] -or $Right -is [array]) {
+        $leftItems = @($Left); $rightItems = @($Right)
+        if ($leftItems.Count -ne $rightItems.Count) { return $false }
+        for ($index = 0; $index -lt $leftItems.Count; $index++) {
+            if (-not (Test-JsonEqual $leftItems[$index] $rightItems[$index])) { return $false }
+        }
+        return $true
     }
+    if ($Left -is [PSCustomObject] -or $Right -is [PSCustomObject]) {
+        if ($Left -isnot [PSCustomObject] -or $Right -isnot [PSCustomObject]) { return $false }
+        $leftNames = @(
+            $Left.PSObject.Properties |
+                ForEach-Object { $_.Name } |
+                Sort-Object
+        )
+        $rightNames = @(
+            $Right.PSObject.Properties |
+                ForEach-Object { $_.Name } |
+                Sort-Object
+        )
+        if (($leftNames -join "`n") -ne ($rightNames -join "`n")) { return $false }
+        foreach ($name in $leftNames) {
+            if (-not (Test-JsonEqual $Left.$name $Right.$name)) { return $false }
+        }
+        return $true
+    }
+    if ($Left.GetType() -ne $Right.GetType()) { return $false }
+    return $Left -eq $Right
 }
 
-# Remove agents
-$removed = 0
-foreach ($agent in $agentsToRemove) {
-    Remove-Item -Path $agent.Path -Force
-    Write-Host "  Removed: $($agent.Name)" -ForegroundColor Green
-    $removed++
+function Confirm-Removal {
+    param([string]$Label)
+    if ($Force) { return $true }
+    return (Read-Host "Remove $Label? [y/N]") -match "^[Yy]"
 }
 
-Write-Host ""
-Write-Host "Uninstall complete!" -ForegroundColor Cyan
-Write-Host "  Removed: $removed agent(s)" -ForegroundColor Green
-
-# Check if agents directory is empty and offer to remove it
-$remainingFiles = Get-ChildItem -Path $targetAgentsDir -ErrorAction SilentlyContinue
-if (-not $remainingFiles -or $remainingFiles.Count -eq 0) {
-    if ($Force) {
-        Remove-Item -Path $targetAgentsDir -Force
-        Write-Host "  Removed empty agents directory" -ForegroundColor Gray
+function Save-Manifest {
+    param($Manifest, [string]$Path)
+    foreach ($categoryName in @("agents", "mcp", "skills")) {
+        if (
+            $Manifest.PSObject.Properties[$categoryName] -and
+            @($Manifest.$categoryName.PSObject.Properties).Count -eq 0
+        ) {
+            $Manifest.PSObject.Properties.Remove($categoryName)
+        }
+    }
+    $ownedCategories = @(
+        $Manifest.PSObject.Properties |
+            ForEach-Object { $_.Name } |
+            Where-Object { $_ -ne "version" }
+    )
+    if ($ownedCategories.Count -eq 0) {
+        Remove-Item -LiteralPath $Path -Force
     } else {
-        $response = Read-Host "Agents directory is now empty. Remove it? [y/N]"
-        if ($response -match "^[Yy]") {
-            Remove-Item -Path $targetAgentsDir -Force
-            Write-Host "  Removed empty agents directory" -ForegroundColor Gray
+        Write-JsonSafely $Manifest $Path
+    }
+    foreach ($categoryName in @("agents", "mcp", "skills")) {
+        if (-not $Manifest.PSObject.Properties[$categoryName]) {
+            $Manifest | Add-Member -MemberType NoteProperty -Name $categoryName -Value ([PSCustomObject]@{})
         }
     }
 }
+
+function Drop-Ownership {
+    param($Manifest, [string]$Category, [string]$Name, [string]$ManifestPath)
+    $Manifest.$Category.PSObject.Properties.Remove($Name)
+    Save-Manifest $Manifest $ManifestPath
+}
+
+function Uninstall-Runtime {
+    param(
+        [string]$RuntimeName,
+        [string]$TargetRoot,
+        [string]$MapName,
+        [string]$TargetConfig
+    )
+
+    $manifestPath = Join-Path $TargetRoot "commandline-crew-manifest.json"
+    if (-not (Test-Path -LiteralPath $manifestPath)) {
+        Write-Host "No $RuntimeName ownership manifest found; nothing will be removed." -ForegroundColor Yellow
+        return
+    }
+    $manifest = Get-Manifest $manifestPath
+
+    $target = if (Test-Path -LiteralPath $TargetConfig) { Read-JsonObject $TargetConfig } else { $null }
+    if ($target -and $target.PSObject.Properties[$MapName] -and $target.$MapName -isnot [PSCustomObject]) {
+        throw "'$MapName' must be an object in $TargetConfig"
+    }
+    foreach ($property in @($manifest.mcp.PSObject.Properties)) {
+        $name = $property.Name
+        $targetEntry = if ($target -and $target.PSObject.Properties[$MapName]) {
+            $target.$MapName.PSObject.Properties[$name]
+        } else {
+            $null
+        }
+        if (-not $targetEntry -or -not (Test-JsonEqual $property.Value $targetEntry.Value)) {
+            Write-Host "  Preserved modified or missing MCP entry and dropped ownership: $name" -ForegroundColor Yellow
+            Drop-Ownership $manifest "mcp" $name $manifestPath
+            continue
+        }
+        if (-not (Confirm-Removal "$RuntimeName MCP entry '$name'")) { continue }
+        $target.$MapName.PSObject.Properties.Remove($name)
+        if (@($target.$MapName.PSObject.Properties).Count -eq 0) { $target.PSObject.Properties.Remove($MapName) }
+        if (@($target.PSObject.Properties).Count -eq 0) {
+            Remove-Item -LiteralPath $TargetConfig -Force
+            $target = $null
+        } else {
+            Write-JsonSafely $target $TargetConfig
+        }
+        Drop-Ownership $manifest "mcp" $name $manifestPath
+        Write-Host "  Removed MCP entry: $name" -ForegroundColor Green
+    }
+
+    foreach ($property in @($manifest.agents.PSObject.Properties)) {
+        $name = $property.Name
+        $targetPath = Join-Path (Join-Path $TargetRoot "agents") $name
+        if (
+            -not (Test-Path -LiteralPath $targetPath -PathType Leaf) -or
+            -not $property.Value.PSObject.Properties["sha256"] -or
+            (Get-FileHash -LiteralPath $targetPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne
+                ([string]$property.Value.sha256).ToLowerInvariant()
+        ) {
+            Write-Host "  Preserved modified or missing agent and dropped ownership: $name" -ForegroundColor Yellow
+            Drop-Ownership $manifest "agents" $name $manifestPath
+            continue
+        }
+        if (-not (Confirm-Removal "$RuntimeName agent '$name'")) { continue }
+        Remove-Item -LiteralPath $targetPath -Force
+        Drop-Ownership $manifest "agents" $name $manifestPath
+        Write-Host "  Removed agent: $name" -ForegroundColor Green
+    }
+
+    $agentsDirectory = Join-Path $TargetRoot "agents"
+    if ((Test-Path -LiteralPath $agentsDirectory) -and @(Get-ChildItem -LiteralPath $agentsDirectory -Force).Count -eq 0) {
+        Remove-Item -LiteralPath $agentsDirectory -Force
+    }
+}
+
+$selectedRuntime = Resolve-Runtime
+$userHome = Get-UserHome
+
+if ($selectedRuntime -in @("copilot", "both")) {
+    $root = Join-Path $userHome ".copilot"
+    Uninstall-Runtime `
+        -RuntimeName "Copilot" `
+        -TargetRoot $root `
+        -MapName "mcpServers" `
+        -TargetConfig (Join-Path $root "mcp-config.json")
+}
+if ($selectedRuntime -in @("opencode", "both")) {
+    $root = Get-OpenCodeRoot
+    Uninstall-Runtime `
+        -RuntimeName "OpenCode" `
+        -TargetRoot $root `
+        -MapName "mcp" `
+        -TargetConfig (Join-Path $root "opencode.json")
+}
+
+Write-Host "Uninstall complete for: $selectedRuntime" -ForegroundColor Cyan

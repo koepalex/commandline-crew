@@ -1,0 +1,38 @@
+name: Cross-runtime packaging
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  packaging:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install zsh
+        run: sudo apt-get update && sudo apt-get install --yes zsh
+
+      - name: Validate skill structure
+        run: python3 tests/skills/validate_skills.py
+
+      - name: Test OpenCode bridge
+        run: python3 -m unittest discover -s tests/opencode-hooks -p 'test_*.py'
+
+      - name: Validate OpenCode plugin
+        run: node --check .opencode/plugins/observability.js
+
+      - name: Test PowerShell installers
+        shell: pwsh
+        run: ./tests/installers/CrossRuntimeInstallers.Tests.ps1
+
+      - name: Test zsh installers
+        run: zsh tests/installers/CrossRuntimeInstallers.Tests.zsh
+
+      - name: Test cross-shell ownership
+        run: zsh tests/installers/CrossShellOwnership.Tests.zsh

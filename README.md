@@ -2,7 +2,11 @@
 
 # commandline-crew
 
-Your AI-powered dev team in the terminal — a curated collection of specialized [GitHub Copilot CLI](https://githubnext.com/projects/copilot-cli) agents designed to work together on real engineering tasks.
+Your AI-powered dev team in the terminal — a curated collection of specialized
+agents and skills for
+[GitHub Copilot CLI](https://githubnext.com/projects/copilot-cli) and
+[OpenCode](https://opencode.ai/), designed to work together on real engineering
+tasks.
 
 ---
 
@@ -27,7 +31,9 @@ Agents collaborate: `@dotnet-bot` and `@deep-thought` delegate research to `@kno
 - **Specialized > generalist.** Each agent has a focused role, tuned tools, and restricted permissions — it won't edit files when it shouldn't, and won't invent answers when it can search for the real one.
 - **Multi-agent pipelines out of the box.** Agents call each other with a structured `[AGENT-CALL]` protocol for compact, citation-rich responses.
 - **Bring your own docs.** The knowledge base system lets you register local folders of markdown/PDFs so `@knowledgebase-wizard` searches *your* documentation first.
-- **Safe to install globally.** `install.ps1` merges MCP server config non-destructively and copies agents to `~/.copilot/agents/` — it won't blow away your existing setup.
+- **Safe to install globally.** PowerShell and zsh installers merge only the
+  selected runtime entries, track repository-owned assets, and preserve
+  unrelated Copilot and OpenCode configuration.
 
 ---
 
@@ -38,25 +44,38 @@ Agents collaborate: `@dotnet-bot` and `@deep-thought` delegate research to `@kno
 git clone https://github.com/your-org/commandline-crew.git
 cd commandline-crew
 
-# Install globally (prompts before overwriting anything)
-.\install.ps1
+# PowerShell: choose Copilot, OpenCode, or both
+.\install.ps1 -Runtime both
 
-# Force overwrite existing agents/servers
-.\install.ps1 -Force
+# zsh
+./install.zsh --runtime both
+
+# Omit the runtime flag to choose interactively
+.\install.ps1
+./install.zsh
+
+# Force overwrite repository-owned agents and MCP entries
+.\install.ps1 -Runtime both -Force
+./install.zsh --runtime both --force
 ```
 
 What gets installed:
 
-| Source | Destination | Behavior |
-|--------|-------------|----------|
-| `.github/agents/*.agent.md` | `~/.copilot/agents/` | Copied (prompts on conflict) |
-| `.copilot/mcp-config.json` | `~/.copilot/mcp-config.json` | Merged (your custom servers preserved) |
+| Runtime | Agents | MCP configuration |
+|---------|--------|-------------------|
+| Copilot | `.github/agents/*.agent.md` → `~/.copilot/agents/` | `.copilot/mcp-config.json` merged into `~/.copilot/mcp-config.json` |
+| OpenCode | `.opencode/agents/*.md` → `~/.config/opencode/agents/` | `.opencode/opencode.json` `mcp` entries merged into `~/.config/opencode/opencode.json` |
+
+OpenCode paths honor `XDG_CONFIG_HOME`.
 
 To remove everything:
 
 ```powershell
-.\uninstall.ps1          # Prompts before each deletion
-.\uninstall.ps1 -Force   # Removes without prompting
+.\uninstall.ps1 -Runtime both
+.\uninstall.ps1 -Runtime both -Force
+
+./uninstall.zsh --runtime both
+./uninstall.zsh --runtime both --force
 ```
 
 Only servers and agents *from this repo* are removed — your own customizations are untouched.
@@ -251,7 +270,15 @@ The following MCP servers are configured in `.copilot/mcp-config.json` and insta
 
 ## 🧠 Skills
 
-Skills are lightweight, model-invoked instruction packs stored in `~/.copilot/skills/<name>/SKILL.md`. Copilot CLI reads the YAML frontmatter of each `SKILL.md` and activates the skill automatically when your prompt matches its trigger description.
+Skills are lightweight, model-invoked instruction packs. Each canonical
+`skills/<name>/SKILL.md` contains activation, safety, and essential workflow
+guidance; detailed procedures live in linked `references/*.md` files and are
+loaded only when needed.
+
+The same source is installed to:
+
+- Copilot CLI: `~/.copilot/skills/<name>/`
+- OpenCode: `~/.config/opencode/skills/<name>/`
 
 | Skill | Trigger | What it does |
 |-------|---------|--------------|
@@ -263,26 +290,37 @@ Skills are lightweight, model-invoked instruction packs stored in `~/.copilot/sk
 ### Install / Uninstall
 
 ```powershell
-# Choose skills interactively (installed skills are marked in the list)
+# Choose skills and runtime interactively
 .\install-skills.ps1
 
-# Install specific skills
-.\install-skills.ps1 -Skill ask-folder,unslop,workflow-goal
-.\install-skills.ps1 -Skill okf-wiki -Force  # overwrite a selected skill
+# Install specific skills for one or both runtimes
+.\install-skills.ps1 -Runtime both -Skill ask-folder,unslop,workflow-goal
+./install-skills.zsh --runtime both --skill ask-folder,unslop,workflow-goal
 
 # Install every skill and overwrite existing copies without prompting
-.\install-skills.ps1 -Force     # overwrite existing skills without prompting
+.\install-skills.ps1 -Runtime both -Force
+./install-skills.zsh --runtime both --force
 
 # Remove skills installed by this repo (other skills are preserved)
-.\uninstall-skills.ps1
-.\uninstall-skills.ps1 -Force
+.\uninstall-skills.ps1 -Runtime both -Force
+./uninstall-skills.zsh --runtime both --force
 ```
 
-Both scripts discover every subfolder of `skills\`, so adding a new skill is just a matter of creating `skills\<name>\SKILL.md` and re-running `install-skills.ps1`.
-Nested skill files are copied recursively. This includes the `okf-wiki` .NET
-tool and its pinned package configuration. Uninstallation removes only skill
-folders represented in this repository and preserves unrelated user-created
-skills.
+The installers discover every subfolder of `skills/` and copy each selected
+skill recursively, including references, scripts, configuration, and tools.
+Generated `bin/` and `obj/` directories are excluded. Uninstallation removes
+only skill folders represented in this repository and preserves unrelated
+user-created skills.
+
+New or updated skills must follow
+`.github/instructions/skills.instructions.md`: use a matching kebab-case folder
+and frontmatter name, keep safety and the essential workflow in `SKILL.md`,
+move detailed guidance into `references/*.md`, use relative links, and gate
+runtime-specific behavior explicitly.
+
+`workflow-goal` is partially portable: its bounded goal-loop guidance works in
+both runtimes, but `Invoke-WorkflowGoal.ps1` and `copilot -p` fan-out remain
+Copilot CLI-only.
 
 ### Unslop
 
@@ -405,16 +443,26 @@ Six Python hook scripts fire at each lifecycle event and write structured record
 > Requires Python 3.9+ (uses only the standard library).
 
 ```powershell
-# Install hooks into a target repo
-.\install-hooks.ps1 -TargetRepo C:\projects\my-app
-
-# Force overwrite if already installed
-.\install-hooks.ps1 -TargetRepo C:\projects\my-app -Force
+# PowerShell
+.\install-hooks.ps1 -TargetRepo C:\projects\my-app -Runtime both
+.\install-hooks.ps1 -TargetRepo C:\projects\my-app -Runtime both -Force
 ```
 
-This copies `hooks/*.py` and writes two `hooks.json` files:
+```zsh
+# zsh
+./install-hooks.zsh --target-repo ~/projects/my-app --runtime both
+./install-hooks.zsh --target-repo ~/projects/my-app --runtime both --force
+```
+
+For Copilot, this copies the Python hooks and writes two `hooks.json` files:
 - `{repo}/hooks.json` — used by **Copilot CLI** (loaded from cwd)
 - `{repo}/.github/hooks/hooks.json` — used by **Copilot coding agent**
+
+For OpenCode, it installs the local plugin under
+`{repo}/.opencode/plugins/` plus the Python bridge and shared database module.
+The adapter records supported session, message, tool, and error events in the
+same observability database. OpenCode event payloads are not identical to
+Copilot hooks, so unavailable fields remain empty rather than being inferred.
 
 Add the database directory to `.gitignore`:
 ```
@@ -444,11 +492,16 @@ The generated HTML dashboard requires internet access to load Chart.js from the 
 ### Uninstall
 
 ```powershell
-# Remove hook scripts and config (keep the database)
-.\uninstall-hooks.ps1 -TargetRepo C:\projects\my-app
+# Remove runtime integrations but keep the database
+.\uninstall-hooks.ps1 -TargetRepo C:\projects\my-app -Runtime both
 
-# Remove everything including the database
-.\uninstall-hooks.ps1 -TargetRepo C:\projects\my-app -Force -PurgeData
+# Remove integrations and observability data
+.\uninstall-hooks.ps1 -TargetRepo C:\projects\my-app -Runtime both -Force -PurgeData
+```
+
+```zsh
+./uninstall-hooks.zsh --target-repo ~/projects/my-app --runtime both
+./uninstall-hooks.zsh --target-repo ~/projects/my-app --runtime both --force --purge-data
 ```
 
 ### Override the database path
@@ -553,6 +606,10 @@ commandline-crew/
 │       └── dotnet.instructions.md     ← C# coding standards
 ├── .copilot/
 │   └── mcp-config.json                ← MCP server definitions
+├── .opencode/
+│   ├── agents/                        ← OpenCode agent adapters
+│   ├── plugins/                       ← OpenCode observability plugin
+│   └── opencode.json                  ← OpenCode MCP definitions
 ├── docs/
 │   └── knowledge-bases.md             ← Knowledge base registry
 ├── hooks/
@@ -570,9 +627,11 @@ commandline-crew/
 │       └── skill-md-generator.cs      ← Copilot SDK sample (single-file)
 ├── skills/
 │   ├── ask-folder/
-│   │   └── SKILL.md                   ← read-only folder-QA skill
+│   │   ├── SKILL.md                   ← concise skill entry point
+│   │   └── references/                ← detailed on-demand guidance
 │   └── workflow-goal/
 │       ├── SKILL.md                   ← bounded goal + dynamic workflow
+│       ├── references/                ← state, fan-out, and launcher details
 │       ├── Invoke-WorkflowGoal.ps1     ← parallel prompt-mode launcher
 │       ├── config.json                ← worker defaults and permissions
 │       └── THIRD-PARTY-NOTICES.md     ← upstream MIT attribution
@@ -582,9 +641,15 @@ commandline-crew/
 ├── resources/                         ← gitignored; put your PDFs/docs here
 ├── hooks.json                         ← hooks config for Copilot CLI
 ├── install.ps1
+├── install.zsh
 ├── install-hooks.ps1
+├── install-hooks.zsh
 ├── install-skills.ps1
+├── install-skills.zsh
 ├── uninstall.ps1
+├── uninstall.zsh
 ├── uninstall-hooks.ps1
-└── uninstall-skills.ps1
+├── uninstall-hooks.zsh
+├── uninstall-skills.ps1
+└── uninstall-skills.zsh
 ```

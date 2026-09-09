@@ -30,7 +30,7 @@ try {
     New-Item -ItemType Directory -Path $temporaryProfile -Force | Out-Null
     $env:USERPROFILE = $temporaryProfile
 
-    & $installScript -Force | Out-Null
+    & $installScript -Runtime copilot -Force | Out-Null
 
     Assert-True (
         Test-Path -LiteralPath (Join-Path $installedSkill "SKILL.md")
@@ -88,7 +88,7 @@ Installed tool smoke test.
 
     $stalePath = Join-Path $installedSkill "stale-file.txt"
     Set-Content -LiteralPath $stalePath -Value "stale"
-    & $installScript -Force | Out-Null
+    & $installScript -Runtime copilot -Force | Out-Null
     Assert-True (
         -not (Test-Path -LiteralPath $stalePath)
     ) "Forced reinstallation should replace the complete skill directory"
@@ -98,7 +98,7 @@ Installed tool smoke test.
         Join-Path $unrelatedSkill "SKILL.md"
     ) -Value "# User-owned skill"
 
-    & $uninstallScript -Force | Out-Null
+    & $uninstallScript -Runtime copilot -Force | Out-Null
 
     Assert-True (
         -not (Test-Path -LiteralPath $installedSkill)

@@ -1,100 +1,46 @@
 ---
 name: unslop
-description: "Rewrite human-facing prose to remove common AI-writing tells while preserving meaning, facts, technical accuracy, and the intended tone. Use when drafting or editing documentation, README content, release notes, pull request descriptions, issue text, emails, articles, reports, explanations, or other prose. Also use when the user asks to make text sound natural, direct, concise, plain-spoken, less robotic, or less AI-generated. Do not alter code, commands, identifiers, quoted source text, or required templates unless the user explicitly asks."
+description: "Rewrite human-facing prose to sound natural, direct, and deliberate while preserving meaning, facts, technical accuracy, audience, and tone. Use for documentation, release notes, pull requests, issues, email, articles, reports, and explanations. Do not alter code, commands, identifiers, quoted source text, or required templates unless explicitly asked."
 user-invocable: true
 argument-hint: "[text, file, or writing task]"
 ---
 
 # Unslop
 
-Edit prose so it reads like deliberate human writing instead of generated
-filler. Keep the author's meaning, facts, audience, and tone.
+Remove generated-sounding filler without changing what the author means.
 
-This Copilot adaptation is based on the ideas in Cursor's
-[`unslop` skill](https://github.com/cursor/plugins/blob/main/pstack/skills/unslop/SKILL.md).
-The instructions here are rewritten for GitHub Copilot CLI.
-
-## Process
+## Essential workflow
 
 1. Identify the audience, purpose, and intended tone.
-2. Mark phrases that are vague, inflated, repetitive, formulaic, or harder to
-   parse than necessary.
-3. Rewrite with concrete nouns, active verbs, plain words, and natural sentence
-   lengths.
-4. Preserve facts, constraints, citations, and domain terminology.
-5. Read the result once more and remove any remaining sentence that could fit
-   unchanged into unrelated documentation.
+2. Find vague, inflated, repetitive, formulaic, or needlessly complex prose.
+3. Rewrite with concrete nouns, active verbs, plain words, and varied natural
+   sentence lengths.
+4. Preserve facts, constraints, citations, uncertainty, and domain terms.
+5. Remove any remaining sentence that could fit unchanged into unrelated
+   documentation.
 
-Return only the revised text unless the user asks for commentary or a list of
-changes.
+Return only the revised text unless the user asks for commentary or a change
+list.
 
-## What to remove
+## Non-negotiable preservation rules
 
-### Empty content
+- Keep code, commands, paths, URLs, identifiers, API names, versions,
+  citations, quoted text, legal or standards terminology, product names, and
+  required templates exact.
+- Do not invent sources, measurements, actors, praise, causal explanations, or
+  certainty.
+- When editing a file, change prose only unless the request explicitly includes
+  examples or generated content.
 
-- Delete unsupported claims such as "experts agree" or "research shows." Name
-  the source when one exists.
-- Replace broad benefits with the mechanism, instruction, measurement, or
-  consequence that makes the claim true.
-- Remove generic introductions and conclusions that add no information.
-- Do not add praise, reassurance, or enthusiasm that the author did not express.
+**Read [`references/rewrite-rules.md`](references/rewrite-rules.md) before
+rewriting.** It contains the full list of empty, formulaic, weak, and
+generated-sounding constructions to remove.
 
-### Formulaic language
+**Read [`references/final-check.md`](references/final-check.md) before returning
+the result.** It contains the required accuracy and quality checklist.
 
-- Replace stock transitions such as "additionally," "it is important to note,"
-  and "in order to" with a direct sentence.
-- Avoid fashionable words when a plain term works. Examples include "delve,"
-  "pivotal," "landscape," "tapestry," "showcase," "leverage," and "utilize."
-- Prefer "is" and "has" over inflated substitutes such as "serves as,"
-  "stands as," "boasts," and "features."
-- State the point directly instead of using "not just X, but Y."
-- Do not force ideas into groups of three.
-- Use one stable term for a concept instead of cycling through synonyms.
-- Use "from X to Y" only when X and Y form a real range.
+## Attribution
 
-### Generated-sounding style
-
-- Avoid em dashes. Use a period or comma.
-- Use colons for lists or examples, not as a routine sentence connector.
-- Use sentence case for headings.
-- Do not decorate headings or bullets with emojis.
-- Use bold text only when it helps the reader scan.
-- Avoid list items whose bold label merely repeats the sentence after it.
-- Use straight quotes unless the target style requires typographic quotes.
-- Remove chatbot phrases such as "Certainly," "Great question," "I hope this
-  helps," and "Let me know if."
-
-### Weak construction
-
-- Prefer active voice when the actor matters or is known.
-- Cut adverbs that only prop up a weak verb. Use a stronger verb or a measured
-  fact.
-- Split sentences that contain several independent ideas.
-- Use complete sentences. Do not compress prose into arrows, fragments, or
-  unexplained abbreviations.
-- Remove repeated qualifications. Keep only the uncertainty supported by the
-  evidence.
-- Replace metaphors and management jargon with the concrete action or object.
-
-## Preserve technical accuracy
-
-- Do not simplify away a necessary technical distinction.
-- Keep code, commands, paths, URLs, identifiers, API names, version numbers,
-  citations, and quoted material exact.
-- Do not invent measurements, sources, actors, or causal explanations.
-- Keep required terminology from standards, legal text, product names, and
-  user-provided templates.
-- When editing a file, change prose only. Leave code examples and generated
-  content alone unless the request includes them.
-
-## Final check
-
-Before returning the rewrite, ask:
-
-- Does every sentence tell this reader something specific?
-- Can any abstract claim become a fact, instruction, example, or number?
-- Are the sentences direct without becoming abrupt?
-- Did the rewrite preserve the original meaning and level of certainty?
-- Does any phrase still sound like a generic assistant response?
-
-Fix any remaining problems, then return the text.
+This adaptation is based on the ideas in Cursor's
+[`unslop` skill](https://github.com/cursor/plugins/blob/main/pstack/skills/unslop/SKILL.md).
+These instructions are rewritten for use across supported agent runtimes.

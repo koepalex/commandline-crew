@@ -1,118 +1,309 @@
 <#
 .SYNOPSIS
-    Removes Copilot hooks observability tooling from a target repository.
-
-.DESCRIPTION
-    Removes the hooks/ Python scripts, hooks.json at the repo root, and
-    .github/hooks/hooks.json that were installed by install-hooks.ps1.
-
-    The database at observability/hooks.db is NOT deleted automatically
-    to preserve collected observability data. Use -PurgeData to remove it too.
-
-.PARAMETER TargetRepo
-    Path to the target repository.
-
-.PARAMETER Force
-    Remove files without prompting.
-
-.PARAMETER PurgeData
-    Also delete the observability/ directory and its database.
-
-.EXAMPLE
-    .\uninstall-hooks.ps1 -TargetRepo C:\projects\my-app
-    .\uninstall-hooks.ps1 -TargetRepo C:\projects\my-app -Force
-    .\uninstall-hooks.ps1 -TargetRepo C:\projects\my-app -Force -PurgeData
+    Uninstalls hooks observability resources owned by commandline-crew.
 #>
 
 param(
     [Parameter(Mandatory)]
     [string]$TargetRepo,
-
+    [ValidateSet("copilot", "opencode", "both")]
+    [string]$Runtime,
     [switch]$Force,
-
     [switch]$PurgeData
 )
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Copilot Hooks Observability - Uninstaller" -ForegroundColor Cyan
-Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host ""
-
-if (-not (Test-Path $TargetRepo -PathType Container)) {
-    Write-Host "ERROR: Target repository not found: $TargetRepo" -ForegroundColor Red
-    exit 1
+function Resolve-Runtime {
+    if ($Runtime) { return $Runtime.ToLowerInvariant() }
+    while ($true) {
+        $value = (Read-Host "Uninstall hooks from Copilot, OpenCode, or both? [copilot/opencode/both]").Trim().ToLowerInvariant()
+        if ($value -in @("c", "copilot")) { return "copilot" }
+        if ($value -in @("o", "opencode")) { return "opencode" }
+        if ($value -in @("b", "both")) { return "both" }
+        Write-Host "Please enter copilot, opencode, or both." -ForegroundColor Yellow
+    }
 }
 
-$TargetRepo = Resolve-Path $TargetRepo | Select-Object -ExpandProperty Path
-Write-Host "Target repository: $TargetRepo" -ForegroundColor Gray
-Write-Host ""
+function Read-JsonObject {
+    param([string]$Path)
+    try { $value = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json }
+    catch { throw "Malformed JSON in '$Path': $($_.Exception.Message)" }
+    if ($value -isnot [PSCustomObject]) { throw "JSON root must be an object: $Path" }
+    return $value
+}
 
-function Remove-IfExists {
-    param([string]$Path, [string]$Label)
-    if (Test-Path $Path) {
-        if (-not $Force) {
-            $response = Read-Host "  Remove '$Label'? [y/N]"
-            if ($response -notmatch "^[Yy]") {
-                Write-Host "  Skipped: $Label" -ForegroundColor Yellow
-                return
-            }
+function Write-JsonSafely {
+    param($Value, [string]$Path)
+    $parent = Split-Path -Parent $Path
+    $temporaryPath = Join-Path $parent (".$([IO.Path]::GetRandomFileName())")
+    try {
+        $encoding = New-Object Text.UTF8Encoding -ArgumentList $false
+        $json = ($Value | ConvertTo-Json -Depth 100) + [Environment]::NewLine
+        [IO.File]::WriteAllText($temporaryPath, $json, $encoding)
+        Copy-Item -LiteralPath $temporaryPath -Destination $Path -Force
+    } finally {
+        if (Test-Path -LiteralPath $temporaryPath) { Remove-Item -LiteralPath $temporaryPath -Force }
+    }
+}
+
+function Test-JsonEqual {
+    param($Left, $Right)
+    if ($null -eq $Left -or $null -eq $Right) { return $null -eq $Left -and $null -eq $Right }
+    if ($Left -is [array] -or $Right -is [array]) {
+        $leftItems = @($Left); $rightItems = @($Right)
+        if ($leftItems.Count -ne $rightItems.Count) { return $false }
+        for ($index = 0; $index -lt $leftItems.Count; $index++) {
+            if (-not (Test-JsonEqual $leftItems[$index] $rightItems[$index])) { return $false }
         }
-        Remove-Item -Path $Path -Force -Recurse
-        Write-Host "  Removed: $Label" -ForegroundColor Green
-    } else {
-        Write-Host "  Not found (skipped): $Label" -ForegroundColor Gray
+        return $true
     }
+    if ($Left -is [PSCustomObject] -or $Right -is [PSCustomObject]) {
+        if ($Left -isnot [PSCustomObject] -or $Right -isnot [PSCustomObject]) { return $false }
+        $leftNames = @(
+            $Left.PSObject.Properties |
+                ForEach-Object { $_.Name } |
+                Sort-Object
+        )
+        $rightNames = @(
+            $Right.PSObject.Properties |
+                ForEach-Object { $_.Name } |
+                Sort-Object
+        )
+        if (($leftNames -join "`n") -ne ($rightNames -join "`n")) { return $false }
+        foreach ($name in $leftNames) {
+            if (-not (Test-JsonEqual $Left.$name $Right.$name)) { return $false }
+        }
+        return $true
+    }
+    if ($Left.GetType() -ne $Right.GetType()) { return $false }
+    return $Left -eq $Right
 }
 
-# --- Remove hooks/ directory ---
-Write-Host "Python Hook Scripts" -ForegroundColor Cyan
-Write-Host "-------------------" -ForegroundColor Cyan
+function Get-Manifest {
+    param([string]$Path)
+    $manifest = Read-JsonObject $Path
+    foreach ($name in @("copilotFiles", "opencodeFiles", "copilotHooksRoot", "copilotHooksAgent", "createdConfigs")) {
+        if (-not $manifest.PSObject.Properties[$name]) {
+            $manifest | Add-Member -MemberType NoteProperty -Name $name -Value ([PSCustomObject]@{})
+        } elseif ($manifest.$name -isnot [PSCustomObject]) {
+            throw "Manifest category '$name' must be an object: $Path"
+        }
+    }
+    return $manifest
+}
 
-$hooksDir = Join-Path $TargetRepo "hooks"
-if (Test-Path $hooksDir) {
-    $scriptNames = @(
-        "db.py","session_start.py","session_end.py","user_prompt.py",
-        "pre_tool_use.py","post_tool_use.py","error_occurred.py","report.py"
+function Save-Manifest {
+    param($Manifest, [string]$Path)
+    foreach ($categoryName in @(
+        "copilotFiles", "opencodeFiles", "copilotHooksRoot", "copilotHooksAgent", "createdConfigs"
+    )) {
+        if (
+            $Manifest.PSObject.Properties[$categoryName] -and
+            @($Manifest.$categoryName.PSObject.Properties).Count -eq 0
+        ) {
+            $Manifest.PSObject.Properties.Remove($categoryName)
+        }
+    }
+    $ownedCategories = @(
+        $Manifest.PSObject.Properties |
+            ForEach-Object { $_.Name } |
+            Where-Object { $_ -ne "version" }
     )
-    foreach ($name in $scriptNames) {
-        Remove-IfExists -Path (Join-Path $hooksDir $name) -Label "hooks/$name"
-    }
-
-    # Remove the directory if now empty
-    $remaining = Get-ChildItem -Path $hooksDir -ErrorAction SilentlyContinue
-    if (-not $remaining) {
-        Remove-Item -Path $hooksDir -Force
-        Write-Host "  Removed: hooks/ (empty)" -ForegroundColor Green
+    if ($ownedCategories.Count -eq 0) {
+        Remove-Item -LiteralPath $Path -Force
+        $directory = Split-Path -Parent $Path
+        if ((Test-Path -LiteralPath $directory) -and @(Get-ChildItem -LiteralPath $directory -Force).Count -eq 0) {
+            Remove-Item -LiteralPath $directory -Force
+        }
     } else {
-        Write-Host "  Note: hooks/ directory kept (contains other files)" -ForegroundColor Yellow
+        Write-JsonSafely $Manifest $Path
     }
-} else {
-    Write-Host "  Not found (skipped): hooks/" -ForegroundColor Gray
+    foreach ($categoryName in @(
+        "copilotFiles", "opencodeFiles", "copilotHooksRoot", "copilotHooksAgent", "createdConfigs"
+    )) {
+        if (-not $Manifest.PSObject.Properties[$categoryName]) {
+            $Manifest | Add-Member -MemberType NoteProperty -Name $categoryName -Value ([PSCustomObject]@{})
+        }
+    }
 }
-Write-Host ""
 
-# --- Remove hooks.json files ---
-Write-Host "hooks.json Files" -ForegroundColor Cyan
-Write-Host "----------------" -ForegroundColor Cyan
+function Confirm-Removal {
+    param([string]$Label)
+    if ($Force) { return $true }
+    return (Read-Host "Remove '$Label'? [y/N]") -match "^[Yy]"
+}
 
-Remove-IfExists -Path (Join-Path $TargetRepo "hooks.json")             -Label "hooks.json (CLI)"
-Remove-IfExists -Path (Join-Path $TargetRepo ".github\hooks\hooks.json") -Label ".github/hooks/hooks.json (agent)"
-Write-Host ""
+function Remove-EmptyDirectory {
+    param([string]$Path)
+    if (
+        (Test-Path -LiteralPath $Path -PathType Container) -and
+        @(Get-ChildItem -LiteralPath $Path -Force).Count -eq 0
+    ) {
+        Remove-Item -LiteralPath $Path -Force
+    }
+}
 
-# --- Optionally purge data ---
+function Find-EqualIndex {
+    param([array]$Items, $Value)
+    for ($index = 0; $index -lt $Items.Count; $index++) {
+        if (Test-JsonEqual $Items[$index] $Value) { return $index }
+    }
+    return -1
+}
+
+function Test-HooksConfigEmpty {
+    param($Config)
+    $otherProperties = @(
+        $Config.PSObject.Properties |
+            ForEach-Object { $_.Name } |
+            Where-Object { $_ -notin @("version", "hooks") }
+    )
+    if ($otherProperties.Count -gt 0) { return $false }
+    if ($Config.PSObject.Properties["hooks"] -and @($Config.hooks.PSObject.Properties).Count -gt 0) { return $false }
+    return $true
+}
+
+function Remove-HookEntries {
+    param(
+        [string]$RelativePath,
+        [string]$Category,
+        $Manifest,
+        [string]$ManifestPath,
+        [string]$TargetRepo
+    )
+    $ownedEvents = @($Manifest.$Category.PSObject.Properties)
+    if ($ownedEvents.Count -eq 0) { return }
+    $targetPath = Join-Path $TargetRepo $RelativePath
+    if (-not (Test-Path -LiteralPath $targetPath -PathType Leaf)) {
+        foreach ($eventProperty in $ownedEvents) {
+            $Manifest.$Category.PSObject.Properties.Remove($eventProperty.Name)
+        }
+        $Manifest.createdConfigs.PSObject.Properties.Remove($RelativePath)
+        Save-Manifest $Manifest $ManifestPath
+        Write-Host "  Config missing; dropped ownership: $RelativePath" -ForegroundColor Yellow
+        return
+    }
+    $target = Read-JsonObject $targetPath
+    $targetHooksValid = $target.PSObject.Properties["hooks"] -and $target.hooks -is [PSCustomObject]
+    $targetChanged = $false
+    foreach ($eventProperty in $ownedEvents) {
+        $event = $eventProperty.Name
+        $remainingRecords = @()
+        foreach ($recordedHook in @($eventProperty.Value)) {
+            $targetEvent = if ($targetHooksValid) { $target.hooks.PSObject.Properties[$event] } else { $null }
+            $items = if ($targetEvent -and $targetEvent.Value -is [array]) { @($targetEvent.Value) } else { @() }
+            $index = Find-EqualIndex $items $recordedHook
+            if ($index -lt 0) {
+                Write-Host "  Hook modified or missing; dropped ownership: $RelativePath [$event]" -ForegroundColor Yellow
+                continue
+            }
+            if (-not (Confirm-Removal "$RelativePath hook '$event'")) {
+                $remainingRecords += $recordedHook
+                continue
+            }
+            $newItems = @()
+            for ($itemIndex = 0; $itemIndex -lt $items.Count; $itemIndex++) {
+                if ($itemIndex -ne $index) { $newItems += $items[$itemIndex] }
+            }
+            if ($newItems.Count -eq 0) {
+                $target.hooks.PSObject.Properties.Remove($event)
+            } else {
+                $target.hooks.PSObject.Properties[$event].Value = $newItems
+            }
+            $targetChanged = $true
+        }
+        if ($remainingRecords.Count -eq 0) {
+            $Manifest.$Category.PSObject.Properties.Remove($event)
+        } else {
+            $Manifest.$Category.PSObject.Properties[$event].Value = $remainingRecords
+        }
+    }
+    if ($targetChanged -and $target.PSObject.Properties["hooks"] -and @($target.hooks.PSObject.Properties).Count -eq 0) {
+        $target.PSObject.Properties.Remove("hooks")
+    }
+
+    $created = $null -ne $Manifest.createdConfigs.PSObject.Properties[$RelativePath]
+    if ($created -and (Test-HooksConfigEmpty $target)) {
+        Remove-Item -LiteralPath $targetPath -Force
+        $Manifest.createdConfigs.PSObject.Properties.Remove($RelativePath)
+        Write-Host "  Removed empty installed config: $RelativePath" -ForegroundColor Green
+    } elseif ($targetChanged) {
+        Write-JsonSafely $target $targetPath
+    }
+    if (@($Manifest.$Category.PSObject.Properties).Count -eq 0) {
+        $Manifest.createdConfigs.PSObject.Properties.Remove($RelativePath)
+    }
+    Save-Manifest $Manifest $ManifestPath
+}
+
+function Remove-OwnedFiles {
+    param(
+        [string]$Category,
+        [string]$OtherCategory,
+        $Manifest,
+        [string]$ManifestPath,
+        [string]$TargetRepo
+    )
+    foreach ($property in @($Manifest.$Category.PSObject.Properties)) {
+        $relative = $property.Name
+        $targetPath = Join-Path $TargetRepo $relative
+        if (
+            -not (Test-Path -LiteralPath $targetPath -PathType Leaf) -or
+            -not $property.Value.PSObject.Properties["sha256"] -or
+            (Get-FileHash -LiteralPath $targetPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne
+                ([string]$property.Value.sha256).ToLowerInvariant()
+        ) {
+            $Manifest.$Category.PSObject.Properties.Remove($relative)
+            Save-Manifest $Manifest $ManifestPath
+            Write-Host "  Preserved modified or missing file and dropped ownership: $relative" -ForegroundColor Yellow
+            continue
+        }
+        if ($Manifest.$OtherCategory.PSObject.Properties[$relative]) {
+            $Manifest.$Category.PSObject.Properties.Remove($relative)
+            Save-Manifest $Manifest $ManifestPath
+            Write-Host "  Retained shared file for other runtime: $relative" -ForegroundColor Gray
+            continue
+        }
+        if (-not (Confirm-Removal $relative)) { continue }
+        Remove-Item -LiteralPath $targetPath -Force
+        $Manifest.$Category.PSObject.Properties.Remove($relative)
+        Save-Manifest $Manifest $ManifestPath
+        Write-Host "  Removed: $relative" -ForegroundColor Green
+    }
+}
+
+$selectedRuntime = Resolve-Runtime
+if (-not (Test-Path -LiteralPath $TargetRepo -PathType Container)) { throw "Target repository not found: $TargetRepo" }
+$TargetRepo = (Resolve-Path -LiteralPath $TargetRepo).Path
+$manifestPath = Join-Path $TargetRepo ".commandline-crew/manifest.json"
+
+if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+    Write-Host "No hook ownership manifest found; no installed resources will be removed." -ForegroundColor Yellow
+} else {
+    $manifest = Get-Manifest $manifestPath
+    if ($selectedRuntime -in @("copilot", "both")) {
+        Remove-HookEntries "hooks.json" "copilotHooksRoot" $manifest $manifestPath $TargetRepo
+        Remove-HookEntries ".github/hooks/hooks.json" "copilotHooksAgent" $manifest $manifestPath $TargetRepo
+        Remove-OwnedFiles "copilotFiles" "opencodeFiles" $manifest $manifestPath $TargetRepo
+        Remove-EmptyDirectory (Join-Path $TargetRepo ".github/hooks")
+        Remove-EmptyDirectory (Join-Path $TargetRepo "hooks")
+    }
+    if ($selectedRuntime -in @("opencode", "both")) {
+        Remove-OwnedFiles "opencodeFiles" "copilotFiles" $manifest $manifestPath $TargetRepo
+        Remove-EmptyDirectory (Join-Path $TargetRepo ".opencode/plugins")
+        Remove-EmptyDirectory (Join-Path $TargetRepo ".opencode")
+        Remove-EmptyDirectory (Join-Path $TargetRepo "hooks")
+    }
+}
+
 if ($PurgeData) {
-    Write-Host "Observability Data" -ForegroundColor Cyan
-    Write-Host "------------------" -ForegroundColor Cyan
-    Remove-IfExists -Path (Join-Path $TargetRepo "observability") -Label "observability/"
-    Write-Host ""
-} else {
-    $dataDir = Join-Path $TargetRepo "observability"
-    if (Test-Path $dataDir) {
-        Write-Host "NOTE: Database preserved at: $dataDir" -ForegroundColor Yellow
-        Write-Host "      Use -PurgeData to delete it." -ForegroundColor Yellow
-        Write-Host ""
+    $dataPath = Join-Path $TargetRepo "observability"
+    if (Test-Path -LiteralPath $dataPath) {
+        if (Confirm-Removal "observability/") { Remove-Item -LiteralPath $dataPath -Recurse -Force }
     }
+} elseif (Test-Path -LiteralPath (Join-Path $TargetRepo "observability")) {
+    Write-Host "Observability data preserved. Use -PurgeData to remove it." -ForegroundColor Yellow
 }
 
-Write-Host "Uninstall complete!" -ForegroundColor Cyan
+Write-Host "Uninstall complete for: $selectedRuntime" -ForegroundColor Cyan
